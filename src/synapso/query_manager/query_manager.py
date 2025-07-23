@@ -7,12 +7,15 @@ from ..persistence.factory import MetaStoreFactory, PrivateStoreFactory, VectorS
 class QueryManager:
     def __init__(self, query_config: QueryConfig):
         self.query_config = query_config
-        self.vectorizer = VectorizerFactory.create_vectorizer(query_config.vectorizer_type)
-        self.reranker = RerankerFactory.create_reranker(query_config.reranker_type)
-        self.summarizer = SummarizerFactory.create_summarizer(query_config.summarizer_type)
-        self.meta_store = MetaStoreFactory.get_meta_store()
-        self.private_store = PrivateStoreFactory.get_private_store()
-        self.vector_store = VectorStoreFactory.get_vector_store()
+        try:
+            self.vectorizer = VectorizerFactory.create_vectorizer(query_config.vectorizer_type)
+            self.reranker = RerankerFactory.create_reranker(query_config.reranker_type)
+            self.summarizer = SummarizerFactory.create_summarizer(query_config.summarizer_type)
+            self.meta_store = MetaStoreFactory.get_meta_store()
+            self.private_store = PrivateStoreFactory.get_private_store()
+            self.vector_store = VectorStoreFactory.get_vector_store()
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize QueryManager components: {e}")
 
     def query(self, query: str) -> str:
         """
@@ -21,5 +24,6 @@ class QueryManager:
         query_vector = self.vectorizer.vectorize(query)
         results = self.vector_store.search(query_vector)
         reranked_results = self.reranker.rerank(results, query_vector)
-        summary = self.summarizer.summarize(reranked_results)
+        vectors_only = [vector for vector, _ in reranked_results]
+        summary = self.summarizer.summarize(vectors_only)
         return summary
