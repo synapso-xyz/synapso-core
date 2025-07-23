@@ -15,7 +15,7 @@ class QueryManager:
             self.private_store = PrivateStoreFactory.get_private_store()
             self.vector_store = VectorStoreFactory.get_vector_store()
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize QueryManager components: {e}")
+            raise RuntimeError(f"Failed to initialize QueryManager components: {e}") from e
 
     def query(self, query: str) -> str:
         """
