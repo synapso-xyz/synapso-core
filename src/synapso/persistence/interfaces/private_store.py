@@ -37,7 +37,7 @@ class PrivateChunkStore(ABC):
         pass
 
     @abstractmethod
-    def teardown(self) -> None:
+    def teardown(self) -> bool:
         """
         Teardown the private store.
         """
