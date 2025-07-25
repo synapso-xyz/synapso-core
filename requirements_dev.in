@@ -1,0 +1,4 @@
+pytest-cov
+pytest-asyncio
+pytest
+pip-tools

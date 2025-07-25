@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
+
 
 @dataclass
 class VectorMetadata(ABC):
@@ -12,11 +13,13 @@ class VectorMetadata(ABC):
     def to_dict(self) -> Dict:
         pass
 
+
 @dataclass
 class Vector:
     vector_id: str
     vector: List[float]
     metadata: VectorMetadata
+
 
 class VectorStore(ABC):
     """
@@ -26,7 +29,6 @@ class VectorStore(ABC):
     @abstractmethod
     def setup(self) -> bool:
         pass
-
 
     @abstractmethod
     def insert(self, vector: Vector) -> bool:
@@ -43,7 +45,9 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def vector_search(self, query_vector: Vector, top_k: int = 5, filters: Dict | None = None) -> List[Tuple[Vector, float]]:
+    def vector_search(
+        self, query_vector: Vector, top_k: int = 5, filters: Dict | None = None
+    ) -> List[Tuple[Vector, float]]:
         """
         Search for vectors most similar to the query_vector. Optionally filter by metadata.
         Returns a list of tuples of (vector, score).
@@ -71,7 +75,6 @@ class VectorStore(ABC):
         """
         pass
 
-    
     @abstractmethod
     def teardown(self) -> bool:
         """

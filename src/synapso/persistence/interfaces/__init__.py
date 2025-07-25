@@ -1,5 +1,5 @@
-from .private_store import PrivateStore
-from .vector_store import VectorStore, Vector, VectorMetadata
 from .meta_store import MetaStore
+from .private_store import PrivateChunkStore
+from .vector_store import Vector, VectorMetadata, VectorStore
 
-__all__ = ["PrivateStore", "VectorStore", "MetaStore", "Vector", "VectorMetadata"]
+__all__ = ["PrivateChunkStore", "VectorStore", "MetaStore", "Vector", "VectorMetadata"]

@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
+
 class PrivateChunkStore(ABC):
     """
-    A store for private chunks. 
+    A store for private chunks.
     This would be a simple key-value store that is stored on device.
     The key / chunk_id would be a content hash of the chunk.
     The value would be the private chunk.

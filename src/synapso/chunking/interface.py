@@ -1,6 +1,13 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
-from typing import List
+
+@dataclass
+class Chunk:
+    text: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 class Chunker(ABC):
     """
@@ -8,7 +15,7 @@ class Chunker(ABC):
     """
 
     @abstractmethod
-    def chunk_file(self, file_path: str) -> List[str]:
+    def chunk_file(self, file_path: str) -> List[Chunk]:
         """
         Chunk a file into smaller pieces.
         """
@@ -21,4 +28,12 @@ class Chunker(ABC):
         """
         pass
 
-    
+    def read_file(self, file_path: str) -> str:
+        """
+        Read a file and return the text.
+        """
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                return file.read()
+        except Exception as e:
+            raise ValueError(f"Error reading file {file_path}: {e}") from e
