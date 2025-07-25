@@ -1,6 +1,12 @@
 from abc import ABC, abstractmethod
 
-from typing import List
+from typing import List, Dict
+from dataclasses import dataclass, field
+
+@dataclass
+class Chunk:
+    text: str
+    metadata: Dict[str, str] = field(default_factory=dict)
 
 class Chunker(ABC):
     """
@@ -8,7 +14,7 @@ class Chunker(ABC):
     """
 
     @abstractmethod
-    def chunk_file(self, file_path: str) -> List[str]:
+    def chunk_file(self, file_path: str) -> List[Chunk]:
         """
         Chunk a file into smaller pieces.
         """
