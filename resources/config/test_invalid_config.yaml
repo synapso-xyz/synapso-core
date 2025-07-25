@@ -1,0 +1,25 @@
+meta_store:
+  meta_db_type: invaliddb
+  meta_db_path: test_meta.db
+private_store:
+  private_db_type: sqlite
+  private_db_path: test_private.db
+vector_store:
+  vector_db_type: sqlite
+  vector_db_path: test_vector.db
+reranker:
+  reranker_type: bm25
+  k1: 1.5
+  b: 0.8
+summarizer:
+  summarizer_type: textrank
+  top_k: 10
+  min_score: 0.2
+vectorizer:
+  vectorizer_type: sentence_transformer
+  model_name: all-MiniLM-L6-v2
+  device: cpu
+chunker:
+  chunker_type: chonkie_recursive
+  chunk_size: 500
+  chunk_overlap: 50 
