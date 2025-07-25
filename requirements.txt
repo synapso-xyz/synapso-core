@@ -10,6 +10,10 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.9.0
     # via httpx
+attrs==25.3.0
+    # via
+    #   jsonschema
+    #   referencing
 certifi==2025.7.14
     # via
     #   httpcore
@@ -17,7 +21,7 @@ certifi==2025.7.14
     #   requests
 charset-normalizer==3.4.2
     # via requests
-chonkie[st]==1.1.1
+chonkie[hub,st]==1.1.1
     # via -r requirements.in
 filelock==3.18.0
     # via
@@ -39,6 +43,7 @@ httpx==0.28.1
 huggingface-hub==0.33.5
     # via
     #   accelerate
+    #   chonkie
     #   sentence-transformers
     #   tokenizers
     #   transformers
@@ -57,6 +62,10 @@ jsonpatch==1.33
     # via langchain-core
 jsonpointer==3.0.0
     # via jsonpatch
+jsonschema==4.25.0
+    # via chonkie
+jsonschema-specifications==2025.4.1
+    # via jsonschema
 langchain-core==0.3.71
     # via langchain-text-splitters
 langchain-text-splitters==0.3.8
@@ -108,6 +117,10 @@ pyyaml==6.0.2
     #   huggingface-hub
     #   langchain-core
     #   transformers
+referencing==0.36.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 regex==2024.11.6
     # via transformers
 requests==2.32.4
@@ -118,6 +131,10 @@ requests==2.32.4
     #   transformers
 requests-toolbelt==1.0.0
     # via langsmith
+rpds-py==0.26.0
+    # via
+    #   jsonschema
+    #   referencing
 safetensors==0.5.3
     # via
     #   accelerate

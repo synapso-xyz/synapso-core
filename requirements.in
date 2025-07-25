@@ -1,4 +1,4 @@
 sqlalchemy
 langchain-text-splitters
 pytest
-chonkie[st]
+chonkie[st,hub]

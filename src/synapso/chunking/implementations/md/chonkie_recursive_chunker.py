@@ -10,4 +10,14 @@ class ChonkieRecursiveChunker(Chunker):
     def chunk_file(self, file_path: str) -> List[Chunk]:
         with open(file_path, "r") as file:
             text = file.read()
-        return self.chunker.chunk(text)
+        
+        chunks = self.chunker.chunk(text)
+        return [Chunk(text=chunk.text, metadata={
+            "start_index": chunk.start_index,
+            "end_index": chunk.end_index,
+            "token_count": chunk.token_count,
+            "level": chunk.level,
+        }) for chunk in chunks]
+    
+    def is_file_supported(self, file_path: str) -> bool:
+        return file_path.endswith(".md")
