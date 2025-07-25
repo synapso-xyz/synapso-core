@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
-
-from typing import Any, List, Dict
 from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 
 @dataclass
 class Chunk:
     text: str
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 class Chunker(ABC):
     """
@@ -36,4 +37,3 @@ class Chunker(ABC):
                 return file.read()
         except Exception as e:
             raise ValueError(f"Error reading file {file_path}: {e}") from e
-    

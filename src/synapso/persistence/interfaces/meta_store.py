@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class MetaStore(ABC):
     """
     A store for metadata.
@@ -10,13 +11,11 @@ class MetaStore(ABC):
         """
         Setup the meta store.
         """
-        pass
-    
+        return True
+
     @abstractmethod
     def teardown(self) -> bool:
         """
         Teardown the meta store.
         """
-        pass
-    
-    
+        return True

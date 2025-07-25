@@ -1,4 +1,4 @@
-from .interface import Chunker
 from .factory import ChunkerFactory
+from .interface import Chunker
 
 __all__ = ["Chunker", "ChunkerFactory"]

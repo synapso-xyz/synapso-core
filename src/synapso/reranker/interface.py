@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-
 from typing import List, Tuple
+
 from ..persistence.interfaces import Vector
+
 
 class Reranker(ABC):
     """
@@ -9,5 +10,7 @@ class Reranker(ABC):
     """
 
     @abstractmethod
-    def rerank(self, results: List[Tuple[Vector, float]], query: Vector) -> List[Tuple[Vector, float]]:
+    def rerank(
+        self, results: List[Tuple[Vector, float]], query: Vector
+    ) -> List[Tuple[Vector, float]]:
         pass

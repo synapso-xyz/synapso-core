@@ -1,7 +1,7 @@
 # Local-First vs. Cloud-Native
 
 This document outlines the core concepts, advantages, and trade-offs of local-first and cloud-native software architectures. It provides guidance on choosing the right approach for different applications.
-
+ 
 ---
 ## Local-First Architecture 💻
 

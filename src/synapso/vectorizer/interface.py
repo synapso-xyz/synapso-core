@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from ..persistence.interfaces import Vector
 from ..chunking.interface import Chunk
+from ..persistence.interfaces import Vector
+
 
 class Vectorizer(ABC):
     """
     A vectorizer is a class that vectorizes text.
     """
-    
+
     def vectorize_batch(self, chunks: List[Chunk]) -> List[Vector]:
         """
         Vectorize a batch of chunks.

@@ -1,6 +1,7 @@
-from .interface import Chunker
-from .implementations.md.langchain_markdown_chunker import LangchainMarkdownChunker
 from .implementations.md.chonkie_recursive_chunker import ChonkieRecursiveChunker
+from .implementations.md.langchain_markdown_chunker import LangchainMarkdownChunker
+from .interface import Chunker
+
 
 class ChunkerFactory:
     """
