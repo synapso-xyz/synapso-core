@@ -1,28 +1,57 @@
+from typing import Any
+
+from ..chunking.interface import Chunk
+from ..config_manager import GlobalConfig, get_config
 from ..persistence.factory import (
     MetaStoreFactory,
     PrivateStoreFactory,
     VectorStoreFactory,
 )
+from ..persistence.interfaces import VectorStore
 from ..reranker.factory import RerankerFactory
+from ..reranker.interface import Reranker
 from ..summarizer.factory import SummarizerFactory
+from ..summarizer.interface import Summarizer
 from ..vectorizer.factory import VectorizerFactory
+from ..vectorizer.interface import Vectorizer
 from .query_config import QueryConfig
+
+
+def _assure_not_none(obj: Any, name: str) -> Any:
+    if obj is None:
+        raise ValueError(f"{name} not found")
+    return obj
+
+
+global_config: GlobalConfig = get_config()
 
 
 class QueryManager:
     def __init__(self, query_config: QueryConfig):
         self.query_config = query_config
         try:
-            self.vectorizer = VectorizerFactory.create_vectorizer(
-                query_config.vectorizer_type
+            self.vectorizer: Vectorizer = _assure_not_none(
+                VectorizerFactory.create_vectorizer(query_config.vectorizer_type),
+                "vectorizer",
             )
-            self.reranker = RerankerFactory.create_reranker(query_config.reranker_type)
-            self.summarizer = SummarizerFactory.create_summarizer(
-                query_config.summarizer_type
+            self.reranker: Reranker = _assure_not_none(
+                RerankerFactory.create_reranker(query_config.reranker_type),
+                "reranker",
             )
-            self.meta_store = MetaStoreFactory.get_meta_store()
-            self.private_store = PrivateStoreFactory.get_private_store()
-            self.vector_store = VectorStoreFactory.get_vector_store()
+            self.summarizer: Summarizer = _assure_not_none(
+                SummarizerFactory.create_summarizer(query_config.summarizer_type),
+                "summarizer",
+            )
+            self.meta_store = MetaStoreFactory.get_meta_store(
+                global_config.meta_store_type
+            )
+            self.private_store = PrivateStoreFactory.get_private_store(
+                global_config.private_store_type
+            )
+            self.vector_store: VectorStore = _assure_not_none(
+                VectorStoreFactory.get_vector_store(global_config.vector_store_type),
+                "vector store",
+            )
         except Exception as e:
             raise RuntimeError(
                 f"Failed to initialize QueryManager components: {e}"
@@ -32,8 +61,9 @@ class QueryManager:
         """
         Query the vector store and return a summary of the results.
         """
-        query_vector = self.vectorizer.vectorize(query)
-        results = self.vector_store.search(query_vector)
+        query_chunk = Chunk(text=query)
+        query_vector = self.vectorizer.vectorize(query_chunk)
+        results = self.vector_store.vector_search(query_vector)
         reranked_results = self.reranker.rerank(results, query_vector)
         vectors_only = [vector for vector, _ in reranked_results]
         summary = self.summarizer.summarize(vectors_only)

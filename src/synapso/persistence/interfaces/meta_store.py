@@ -11,11 +11,11 @@ class MetaStore(ABC):
         """
         Setup the meta store.
         """
-        return True
+        pass
 
     @abstractmethod
     def teardown(self) -> bool:
         """
         Teardown the meta store.
         """
-        return True
+        pass

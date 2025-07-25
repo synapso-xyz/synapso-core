@@ -1,28 +1,37 @@
-from .interfaces import MetaStore, PrivateStore, VectorStore
+from .interfaces import MetaStore, PrivateChunkStore, VectorStore
 
 
 class MetaStoreFactory:
     @staticmethod
-    def get_meta_store() -> MetaStore | None:
+    def get_meta_store(meta_store_type: str) -> MetaStore:
         """
         Read the global config and prepare the meta store.
         """
-        pass
+        available_meta_stores = {}
+        if meta_store_type not in available_meta_stores:
+            raise ValueError(f"Meta store type {meta_store_type} not found")
+        return available_meta_stores[meta_store_type]()
 
 
 class PrivateStoreFactory:
     @staticmethod
-    def get_private_store() -> PrivateStore | None:
+    def get_private_store(private_store_type: str) -> PrivateChunkStore:
         """
         Read the global config and prepare the private store.
         """
-        pass
+        available_private_stores = {}
+        if private_store_type not in available_private_stores:
+            raise ValueError(f"Private store type {private_store_type} not found")
+        return available_private_stores[private_store_type]()
 
 
 class VectorStoreFactory:
     @staticmethod
-    def get_vector_store() -> VectorStore | None:
+    def get_vector_store(vector_store_type: str) -> VectorStore:
         """
         Read the global config and prepare the vector store.
         """
-        pass
+        available_vector_stores = {}
+        if vector_store_type not in available_vector_stores:
+            raise ValueError(f"Vector store type {vector_store_type} not found")
+        return available_vector_stores[vector_store_type]()

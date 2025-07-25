@@ -103,6 +103,7 @@ psutil==7.0.0
     # via accelerate
 pydantic==2.11.7
     # via
+    #   -r requirements.in
     #   langchain-core
     #   langsmith
 pydantic-core==2.33.2
