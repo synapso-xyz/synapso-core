@@ -12,8 +12,7 @@ class LangchainMarkdownChunker(Chunker):
         self.markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=self.headers_to_split_on)
     
     def chunk_file(self, file_path: str) -> List[Chunk]:
-        with open(file_path, "r") as file:
-            text = file.read()
+        text = self.read_file(file_path)
 
         chunks = self.markdown_splitter.split_text(text)
         return [Chunk(text=chunk.page_content, metadata=chunk.metadata) for chunk in chunks]

@@ -24,14 +24,10 @@ class SentenceTransformerVectorizer(Vectorizer):
         # We use the all-MiniLM-L6-v2 model for now. It is a fully offline model. 
         self.embeddings = SentenceTransformerEmbeddings(model="all-MiniLM-L6-v2")
 
-    def vectorize(self, chunks: List[Chunk]) -> Vector:
-        vectors = []
-        for chunk in chunks:
-            vector_vals: np.ndarray = self.embeddings.embed(chunk.text)
-            vector = Vector(
-                vector=vector_vals.tolist(),
-                vector_id=_content_hash(chunk),
-                metadata=SentenceTransformerVectorMetadata(chunk)
-            )
-            vectors.append(vector)
-        return vectors
+    def vectorize(self, chunk: Chunk) -> Vector:
+        vector_vals: np.ndarray = self.embeddings.embed(chunk.text)
+        return Vector(
+            vector=vector_vals.tolist(),
+            vector_id=_content_hash(chunk),
+            metadata=SentenceTransformerVectorMetadata(chunk)
+        )

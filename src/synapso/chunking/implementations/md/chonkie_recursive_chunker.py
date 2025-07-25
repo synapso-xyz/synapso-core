@@ -8,9 +8,7 @@ class ChonkieRecursiveChunker(Chunker):
         self.chunker = RecursiveChunker.from_recipe("markdown", lang="en")
 
     def chunk_file(self, file_path: str) -> List[Chunk]:
-        with open(file_path, "r") as file:
-            text = file.read()
-        
+        text = self.read_file(file_path)
         chunks = self.chunker.chunk(text)
         return [Chunk(text=chunk.text, metadata={
             "start_index": chunk.start_index,
