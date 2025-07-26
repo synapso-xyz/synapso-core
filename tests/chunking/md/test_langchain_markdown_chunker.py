@@ -85,6 +85,83 @@ def test_nonexistent_file(chunker):
         chunker.chunk_file("not_a_real_file.md")
 
 
+def test_permission_error(tmp_path, chunker):
+    file_path = tmp_path / "no_permission.md"
+    file_path.write_text("test")
+    file_path.chmod(0o000)  # Remove all permissions
+    try:
+        try:
+            chunker.chunk_file(str(file_path))
+        except PermissionError as e:
+            assert "Permission denied" in str(e)
+        else:
+            pytest.fail("PermissionError not raised")
+    finally:
+        file_path.chmod(0o644)  # Restore permissions so file can be deleted
+
+
+def test_is_a_directory_error(tmp_path, chunker):
+    dir_path = tmp_path / "adir"
+    dir_path.mkdir()
+    try:
+        try:
+            chunker.chunk_file(str(dir_path))
+        except IsADirectoryError as e:
+            assert "Expected a file but found a directory" in str(e)
+        else:
+            pytest.fail("IsADirectoryError not raised")
+    finally:
+        dir_path.rmdir()
+
+
+def test_unicode_decode_error(tmp_path, chunker):
+    file_path = tmp_path / "bad_utf8.md"
+    # Write invalid UTF-8 bytes
+    with open(file_path, "wb") as f:
+        f.write(b"\xff\xfe\xfd")
+    try:
+        try:
+            chunker.chunk_file(str(file_path))
+        except UnicodeDecodeError as e:
+            assert "File is not valid UTF-8" in str(e)
+        else:
+            pytest.fail("UnicodeDecodeError not raised")
+    finally:
+        file_path.unlink()
+
+
+def test_os_error(monkeypatch, chunker):
+    def bad_open(*args, **kwargs):
+        raise OSError("Simulated OS error")
+
+    monkeypatch.setattr("builtins.open", bad_open)
+    try:
+        try:
+            chunker.chunk_file(SAMPLE_MD)
+        except OSError as e:
+            assert "OS error reading file" in str(e)
+        else:
+            pytest.fail("OSError not raised")
+    finally:
+        monkeypatch.undo()
+
+
+def test_generic_exception(monkeypatch, chunker):
+    def bad_open(*args, **kwargs):
+        raise RuntimeError("Simulated generic error")
+
+    monkeypatch.setattr("builtins.open", bad_open)
+    try:
+        try:
+            chunker.chunk_file(SAMPLE_MD)
+        except Exception as e:
+            assert "Error reading file" in str(e)
+        else:
+            pytest.fail("Generic Exception not raised")
+    finally:
+        monkeypatch.undo()
+
+
 def test_chonkie_chunk_file_sample_md(chonkie_chunker):
     chunks = chonkie_chunker.chunk_file(SAMPLE_MD)
     assert len(chunks) > 0

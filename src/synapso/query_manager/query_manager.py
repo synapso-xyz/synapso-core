@@ -31,25 +31,31 @@ class QueryManager:
         self.query_config = query_config
         try:
             self.vectorizer: Vectorizer = _assure_not_none(
-                VectorizerFactory.create_vectorizer(query_config.vectorizer_type),
+                VectorizerFactory.create_vectorizer(
+                    global_config.vectorizer.vectorizer_type
+                ),
                 "vectorizer",
             )
             self.reranker: Reranker = _assure_not_none(
-                RerankerFactory.create_reranker(query_config.reranker_type),
+                RerankerFactory.create_reranker(global_config.reranker.reranker_type),
                 "reranker",
             )
             self.summarizer: Summarizer = _assure_not_none(
-                SummarizerFactory.create_summarizer(query_config.summarizer_type),
+                SummarizerFactory.create_summarizer(
+                    global_config.summarizer.summarizer_type
+                ),
                 "summarizer",
             )
             self.meta_store = MetaStoreFactory.get_meta_store(
-                global_config.meta_store_type
+                global_config.meta_store.meta_db_type
             )
             self.private_store = PrivateStoreFactory.get_private_store(
-                global_config.private_store_type
+                global_config.private_store.private_db_type
             )
             self.vector_store: VectorStore = _assure_not_none(
-                VectorStoreFactory.get_vector_store(global_config.vector_store_type),
+                VectorStoreFactory.get_vector_store(
+                    global_config.vector_store.vector_db_type
+                ),
                 "vector store",
             )
         except Exception as e:
