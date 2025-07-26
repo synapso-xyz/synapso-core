@@ -95,7 +95,7 @@ def test_permission_error(tmp_path, chunker):
         except PermissionError as e:
             assert "Permission denied" in str(e)
         else:
-            assert False, "PermissionError not raised"
+            pytest.fail("PermissionError not raised")
     finally:
         file_path.chmod(0o644)  # Restore permissions so file can be deleted
 
@@ -109,7 +109,7 @@ def test_is_a_directory_error(tmp_path, chunker):
         except IsADirectoryError as e:
             assert "Expected a file but found a directory" in str(e)
         else:
-            assert False, "IsADirectoryError not raised"
+            pytest.fail("IsADirectoryError not raised")
     finally:
         dir_path.rmdir()
 
@@ -125,7 +125,7 @@ def test_unicode_decode_error(tmp_path, chunker):
         except UnicodeDecodeError as e:
             assert "File is not valid UTF-8" in str(e)
         else:
-            assert False, "UnicodeDecodeError not raised"
+            pytest.fail("UnicodeDecodeError not raised")
     finally:
         file_path.unlink()
 
@@ -141,7 +141,7 @@ def test_os_error(monkeypatch, chunker):
         except OSError as e:
             assert "OS error reading file" in str(e)
         else:
-            assert False, "OSError not raised"
+            pytest.fail("OSError not raised")
     finally:
         monkeypatch.undo()
 
@@ -157,7 +157,7 @@ def test_generic_exception(monkeypatch, chunker):
         except Exception as e:
             assert "Error reading file" in str(e)
         else:
-            assert False, "Generic Exception not raised"
+            pytest.fail("Generic Exception not raised")
     finally:
         monkeypatch.undo()
 
