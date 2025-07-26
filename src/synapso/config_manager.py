@@ -22,7 +22,7 @@ class BaseConfig(BaseModel, ABC):
 
 
 class MetaStoreConfig(BaseConfig):
-    available_db_types: ClassVar[list[str]] = ["sqlite"]
+    available_types: ClassVar[list[str]] = ["sqlite"]
     meta_db_type: str = "sqlite"
     meta_db_path: str = "meta.db"
 
@@ -32,7 +32,7 @@ class MetaStoreConfig(BaseConfig):
 
 
 class PrivateStoreConfig(BaseConfig):
-    available_db_types: ClassVar[list[str]] = ["sqlite"]
+    available_types: ClassVar[list[str]] = ["sqlite"]
     private_db_type: str = "sqlite"
     private_db_path: str = "private.db"
 
@@ -42,7 +42,7 @@ class PrivateStoreConfig(BaseConfig):
 
 
 class VectorStoreConfig(BaseConfig):
-    available_db_types: ClassVar[list[str]] = ["sqlite"]
+    available_types: ClassVar[list[str]] = ["sqlite"]
     vector_db_type: str = "sqlite"
     vector_db_path: str = "vector.db"
 
