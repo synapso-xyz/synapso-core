@@ -11,12 +11,13 @@ CONFIG_FILE = os.path.join(SYNAPSO_HOME, "config.yaml")
 
 class BaseConfig(BaseModel, ABC):
     available_types: ClassVar[list[str]]
-    type_field_name: ClassVar[str]
 
-    def validate_type_field(self, field_name: str, value: str) -> str:
-        available = getattr(self.__class__, "available_types", [])
-        if value not in available:
-            raise ValueError(f"{field_name} must be one of {available}, got '{value}'")
+    @classmethod
+    def validate_type_field(cls, value: str, field_name: str) -> str:
+        if value not in cls.available_types:
+            raise ValueError(
+                f"{field_name} must be one of {cls.available_types}, got '{value}'"
+            )
         return value
 
 
@@ -27,7 +28,7 @@ class MetaStoreConfig(BaseConfig):
 
     @field_validator("meta_db_type")
     def validate_db_type(cls, v):
-        return cls.validate_type_field("meta_db_type", v)
+        return cls.validate_type_field(v, "meta_db_type")
 
 
 class PrivateStoreConfig(BaseConfig):
@@ -37,7 +38,7 @@ class PrivateStoreConfig(BaseConfig):
 
     @field_validator("private_db_type")
     def validate_db_type(cls, v):
-        return cls.validate_type_field("private_db_type", v)
+        return cls.validate_type_field(v, "private_db_type")
 
 
 class VectorStoreConfig(BaseConfig):
@@ -47,7 +48,7 @@ class VectorStoreConfig(BaseConfig):
 
     @field_validator("vector_db_type")
     def validate_db_type(cls, v):
-        return cls.validate_type_field("vector_db_type", v)
+        return cls.validate_type_field(v, "vector_db_type")
 
 
 class RerankerConfig(BaseConfig):
@@ -58,7 +59,7 @@ class RerankerConfig(BaseConfig):
 
     @field_validator("reranker_type")
     def validate_type(cls, v):
-        return cls.validate_type_field("reranker_type", v)
+        return cls.validate_type_field(v, "reranker_type")
 
 
 class SummarizerConfig(BaseConfig):
@@ -69,7 +70,7 @@ class SummarizerConfig(BaseConfig):
 
     @field_validator("summarizer_type")
     def validate_type(cls, v):
-        return cls.validate_type_field("summarizer_type", v)
+        return cls.validate_type_field(v, "summarizer_type")
 
 
 class VectorizerConfig(BaseConfig):
@@ -80,7 +81,7 @@ class VectorizerConfig(BaseConfig):
 
     @field_validator("vectorizer_type")
     def validate_type(cls, v):
-        return cls.validate_type_field("vectorizer_type", v)
+        return cls.validate_type_field(v, "vectorizer_type")
 
 
 class ChunkerConfig(BaseConfig):
@@ -91,7 +92,7 @@ class ChunkerConfig(BaseConfig):
 
     @field_validator("chunker_type")
     def validate_type(cls, v):
-        return cls.validate_type_field("chunker_type", v)
+        return cls.validate_type_field(v, "chunker_type")
 
 
 class GlobalConfig(BaseModel):
