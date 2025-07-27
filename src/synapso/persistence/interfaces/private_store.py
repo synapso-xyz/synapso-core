@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from .base_store import AsyncDataStore
 
 
-class PrivateChunkStore(ABC):
+class PrivateChunkStore(AsyncDataStore):
     """
     A store for private chunks.
     This would be a simple key-value store that is stored on device.

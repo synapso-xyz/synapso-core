@@ -1,20 +1,22 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+
+from .base_store import AsyncDataStore
 
 
-class MetaStore(ABC):
+class MetaStore(AsyncDataStore):
     """
     A store for metadata.
     """
 
     @abstractmethod
-    def setup(self) -> bool:
+    def metastore_setup(self) -> bool:
         """
         Setup the meta store.
         """
         pass
 
     @abstractmethod
-    def teardown(self) -> bool:
+    def metastore_teardown(self) -> bool:
         """
         Teardown the meta store.
         """
