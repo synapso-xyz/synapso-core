@@ -19,8 +19,21 @@
             "args": [
                 "--durations=10",
                 "--cov=src/synapso",
-                "--cov-report=term-missing",
+                "--cov-report=xml",
                 "${workspaceFolder}/tests"
+            ],
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Pytest with Coverage: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "--durations=10",
+                "--cov=src/synapso",
+                "--cov-report=xml",
+                "${file}"
             ],
             "console": "integratedTerminal",
         }

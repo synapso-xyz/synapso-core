@@ -8,6 +8,8 @@ from ...chunking.interface import Chunk
 from ...persistence.interfaces.vector_store import Vector, VectorMetadata
 from ..interface import Vectorizer
 
+_embedding_model = SentenceTransformerEmbeddings(model="all-MiniLM-L6-v2")
+
 
 def _content_hash(chunk: Chunk) -> str:
     return hashlib.sha256(chunk.text.encode("utf-8")).hexdigest()
@@ -24,7 +26,7 @@ class SentenceTransformerVectorMetadata(VectorMetadata):
 class SentenceTransformerVectorizer(Vectorizer):
     def __init__(self):
         # We use the all-MiniLM-L6-v2 model for now. It is a fully offline model.
-        self.embeddings = SentenceTransformerEmbeddings(model="all-MiniLM-L6-v2")
+        self.embeddings = _embedding_model
 
     def vectorize(self, chunk: Chunk) -> Vector:
         vector_vals: np.ndarray = self.embeddings.embed(chunk.text)

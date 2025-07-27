@@ -3,3 +3,4 @@ langchain-text-splitters
 pytest
 chonkie[st,hub]
 pydantic
+loguru
