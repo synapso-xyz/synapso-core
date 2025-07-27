@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.synapso.cortex_manager import (
     SUPPORTED_FORMATS,
     Cortex,
+    CortexManager,
     FileRecord,
     FileState,
     _classify,
@@ -16,13 +17,6 @@ from src.synapso.cortex_manager import (
     _get_file_list_path,
     _get_ingestion_errors_path,
     _validate_cortex_path,
-    create_cortex,
-    delete_cortex,
-    get_async_engine,
-    get_cortex_by_id,
-    index_cortex,
-    initialize_cortex,
-    purge_cortex,
 )
 
 
@@ -170,57 +164,70 @@ class TestValidateCortexPath:
             _validate_cortex_path(str(hidden_dir))
 
 
-class TestGetAsyncEngine:
+class TestCortexManagerInit:
     @patch("src.synapso.cortex_manager.get_config")
     @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("os.open")
-    @patch("os.close")
-    def test_get_async_engine(
-        self, mock_os_close, mock_os_open, mock_factory, mock_get_config
-    ):
-        """Test get_async_engine function."""
+    def test_cortex_manager_init(self, mock_factory, mock_get_config):
+        """Test CortexManager initialization."""
+        # Setup mock config with nested meta_db_type
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+
         mock_config = MagicMock()
-        mock_config.meta_store.meta_db_type = "sqlite"
-        mock_get_config.return_value = mock_config
+        mock_config.meta_store = mock_meta_config
 
         mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_meta_store.get_async_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
         mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
-        result = get_async_engine()
+        cm = CortexManager()
 
+        # Assertions
+        mock_get_config.assert_called_once()
         mock_factory.get_meta_store.assert_called_once_with("sqlite")
         mock_meta_store.get_async_engine.assert_called_once()
-        assert result == mock_engine
+
+        assert cm.config == mock_config
+        assert cm.meta_store == mock_meta_store
+        assert cm.async_engine == mock_engine
 
 
 class TestCreateCortex:
-    @patch("src.synapso.cortex_manager.get_async_engine")
     @patch("src.synapso.cortex_manager.uuid")
     @patch("src.synapso.cortex_manager._validate_cortex_path")
-    @patch("os.open")
-    @patch("os.close")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
     async def test_create_cortex_success(
-        self,
-        mock_os_close,
-        mock_os_open,
-        mock_validate_path,
-        mock_uuid,
-        mock_get_engine,
+        self, mock_factory, mock_get_config, mock_validate_path, mock_uuid
     ):
         """Test successful cortex creation."""
         # Setup mocks
         mock_uuid.uuid4.return_value.hex = "test_cortex_id"
         mock_session = AsyncMock(spec=AsyncSession)
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
+            # Create CortexManager instance
+            cm = CortexManager()
+
             # Test
-            result = await create_cortex("Test Cortex", "/test/path")
+            result = await cm.create_cortex("Test Cortex", "/test/path")
 
             # Assertions
             assert result.cortex_id == "test_cortex_id"
@@ -232,37 +239,47 @@ class TestCreateCortex:
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
-    @patch("src.synapso.cortex_manager.get_async_engine")
     @patch("src.synapso.cortex_manager._validate_cortex_path")
-    @patch("os.open")
-    @patch("os.close")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
     async def test_create_cortex_with_none_name(
-        self, mock_os_close, mock_os_open, mock_validate_path, mock_get_engine
+        self, mock_factory, mock_get_config, mock_validate_path
     ):
         """Test cortex creation with None name."""
         mock_session = AsyncMock(spec=AsyncSession)
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
-            result = await create_cortex(None, "/test/path")
+            cm = CortexManager()
+            result = await cm.create_cortex(None, "/test/path")
             assert result.cortex_name is None
 
     async def test_create_cortex_invalid_path(self):
         """Test cortex creation with invalid path."""
-        with pytest.raises(ValueError):
-            await create_cortex("Test", "/nonexistent/path")
+        with patch("src.synapso.cortex_manager.get_config"):
+            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+                cm = CortexManager()
+                with pytest.raises(ValueError):
+                    await cm.create_cortex("Test", "/nonexistent/path")
 
 
 class TestGetCortexById:
-    @patch("src.synapso.cortex_manager.get_async_engine")
-    @patch("os.open")
-    @patch("os.close")
-    async def test_get_cortex_by_id_success(
-        self, mock_os_close, mock_os_open, mock_get_engine
-    ):
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    async def test_get_cortex_by_id_success(self, mock_factory, mock_get_config):
         """Test successful cortex retrieval by ID."""
         mock_cortex = MagicMock(spec=Cortex)
         mock_row = MagicMock()
@@ -273,51 +290,70 @@ class TestGetCortexById:
         mock_result.first.return_value = mock_row
         mock_session.execute.return_value = mock_result
 
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
-            result = await get_cortex_by_id("test_id")
+            cm = CortexManager()
+            result = await cm.get_cortex_by_id("test_id")
             assert result == mock_cortex
 
-    @patch("src.synapso.cortex_manager.get_async_engine")
-    @patch("os.open")
-    @patch("os.close")
-    async def test_get_cortex_by_id_not_found(
-        self, mock_os_close, mock_os_open, mock_get_engine
-    ):
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    async def test_get_cortex_by_id_not_found(self, mock_factory, mock_get_config):
         """Test cortex retrieval when cortex doesn't exist."""
         mock_session = AsyncMock(spec=AsyncSession)
         mock_result = MagicMock()
         mock_result.first.return_value = None
         mock_session.execute.return_value = mock_result
 
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
+            cm = CortexManager()
             with pytest.raises(ValueError, match="not found"):
-                await get_cortex_by_id("nonexistent_id")
+                await cm.get_cortex_by_id("nonexistent_id")
 
 
 class TestInitializeCortex:
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_cortex_by_id")
-    @patch("src.synapso.cortex_manager.index_cortex")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso.cortex_manager.CortexManager.index_cortex")
+    @patch("src.synapso.cortex_manager._get_file_list_path")
     @patch("os.mkdir")
-    @patch("os.open")
-    @patch("os.close")
     async def test_initialize_cortex_success(
         self,
-        mock_os_close,
-        mock_os_open,
         mock_makedirs,
+        mock_get_file_list_path,
         mock_index_cortex,
         mock_get_cortex,
+        mock_factory,
+        mock_get_config,
     ):
         """Test successful cortex initialization."""
         mock_cortex = MagicMock()
@@ -325,26 +361,66 @@ class TestInitializeCortex:
         mock_get_cortex.return_value = mock_cortex
         mock_index_cortex.return_value = True
 
-        result = await initialize_cortex("test_id", index_now=True)
+        # Mock file operations
+        mock_file_list_path = MagicMock()
+        mock_get_file_list_path.return_value = mock_file_list_path
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
+        mock_engine = MagicMock()
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
+
+        cm = CortexManager()
+        result = await cm.initialize_cortex("test_id", index_now=True)
 
         assert result is True
         mock_makedirs.assert_called_once_with(Path("/test/path/.synapso"), 511)
         mock_index_cortex.assert_called_once_with(cortex_id="test_id")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_cortex_by_id")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso.cortex_manager._get_file_list_path")
     @patch("os.mkdir")
-    @patch("os.open")
-    @patch("os.close")
     async def test_initialize_cortex_no_index(
-        self, mock_os_close, mock_os_open, mock_makedirs, mock_get_cortex
+        self,
+        mock_makedirs,
+        mock_get_file_list_path,
+        mock_get_cortex,
+        mock_factory,
+        mock_get_config,
     ):
         """Test cortex initialization without indexing."""
         mock_cortex = MagicMock()
         mock_cortex.path = "/test/path"
         mock_get_cortex.return_value = mock_cortex
 
-        result = await initialize_cortex("test_id", index_now=False)
+        # Mock file operations
+        mock_file_list_path = MagicMock()
+        mock_get_file_list_path.return_value = mock_file_list_path
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
+        mock_engine = MagicMock()
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
+
+        cm = CortexManager()
+        result = await cm.initialize_cortex("test_id", index_now=False)
 
         assert result is True
         mock_makedirs.assert_called_once_with(Path("/test/path/.synapso"), 511)
@@ -352,20 +428,22 @@ class TestInitializeCortex:
 
 class TestIndexCortex:
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_async_engine")
-    @patch("src.synapso.cortex_manager.get_cortex_by_id")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
     @patch("src.synapso.cortex_manager.ingest_file")
-    @patch("os.open")
-    @patch("os.close")
+    @patch("src.synapso.cortex_manager._get_file_list_path")
+    @patch("src.synapso.cortex_manager._get_ingestion_errors_path")
     @patch("io.open")
     async def test_index_cortex_success(
         self,
-        mock_io_opne,
-        mock_os_close,
-        mock_os_open,
+        mock_io_open,
+        mock_get_ingestion_errors_path,
+        mock_get_file_list_path,
         mock_ingest_file,
         mock_get_cortex,
-        mock_get_async_engine,
+        mock_factory,
+        mock_get_config,
     ):
         """Test successful cortex indexing."""
         mock_cortex = MagicMock()
@@ -373,9 +451,25 @@ class TestIndexCortex:
         mock_get_cortex.return_value = mock_cortex
         mock_ingest_file.return_value = (True, None)
 
+        # Mock file paths
+        mock_file_list_path = MagicMock()
+        mock_ingestion_errors_path = MagicMock()
+        mock_get_file_list_path.return_value = mock_file_list_path
+        mock_get_ingestion_errors_path.return_value = mock_ingestion_errors_path
+
         mock_session = AsyncMock(spec=AsyncSession)
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_async_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
@@ -396,41 +490,57 @@ class TestIndexCortex:
                 mock_writer = MagicMock()
                 mock_csv_writer.return_value = mock_writer
 
-                result = await index_cortex("test_id")
+                cm = CortexManager()
+                result = await cm.index_cortex("test_id")
 
                 assert result is True
                 mock_writer.writerow.assert_called()
                 mock_ingest_file.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_cortex_by_id")
-    @patch("os.open")
-    @patch("os.close")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
     async def test_index_cortex_invalid_id(
-        self, mock_os_close, mock_os_open, mock_get_cortex
+        self, mock_get_cortex, mock_factory, mock_get_config
     ):
         """Test indexing with invalid cortex ID."""
         # get_cortex_by_id raises ValueError when cortex is not found
         mock_get_cortex.side_effect = ValueError("Cortex with id invalid_id not found")
 
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
+        mock_engine = MagicMock()
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
+
+        cm = CortexManager()
         with pytest.raises(ValueError, match="not found"):
-            await index_cortex("invalid_id")
+            await cm.index_cortex("invalid_id")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_async_engine")
-    @patch("src.synapso.cortex_manager.get_cortex_by_id")
+    @patch("src.synapso.cortex_manager.get_config")
+    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
     @patch("src.synapso.cortex_manager.ingest_file")
-    @patch("os.open")
-    @patch("os.close")
+    @patch("src.synapso.cortex_manager._get_file_list_path")
+    @patch("src.synapso.cortex_manager._get_ingestion_errors_path")
     @patch("io.open")
     async def test_index_cortex_ingestion_error(
         self,
         mock_io_open,
-        mock_os_close,
-        mock_os_open,
+        mock_get_ingestion_errors_path,
+        mock_get_file_list_path,
         mock_ingest_file,
         mock_get_cortex,
-        mock_get_async_engine,
+        mock_factory,
+        mock_get_config,
     ):
         """Test cortex indexing with ingestion errors."""
         mock_cortex = MagicMock()
@@ -438,9 +548,25 @@ class TestIndexCortex:
         mock_get_cortex.return_value = mock_cortex
         mock_ingest_file.return_value = (False, {"error": "test error"})
 
+        # Mock file paths
+        mock_file_list_path = MagicMock()
+        mock_ingestion_errors_path = MagicMock()
+        mock_get_file_list_path.return_value = mock_file_list_path
+        mock_get_ingestion_errors_path.return_value = mock_ingestion_errors_path
+
         mock_session = AsyncMock(spec=AsyncSession)
+
+        mock_meta_config = MagicMock()
+        mock_meta_config.meta_db_type = "sqlite"
+        mock_config = MagicMock()
+        mock_config.meta_store = mock_meta_config
+
+        mock_meta_store = MagicMock()
         mock_engine = MagicMock()
-        mock_get_async_engine.return_value = mock_engine
+
+        mock_get_config.return_value = mock_config
+        mock_factory.get_meta_store.return_value = mock_meta_store
+        mock_meta_store.get_async_engine.return_value = mock_engine
 
         with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
@@ -459,7 +585,8 @@ class TestIndexCortex:
                 mock_csv_writer.return_value = mock_writer
                 mock_json_dumps.return_value = '{"error": "test error"}'
 
-                result = await index_cortex("test_id")
+                cm = CortexManager()
+                result = await cm.index_cortex("test_id")
 
                 assert result is False  # Function returns False when there are errors
                 mock_ingest_file.assert_called_once()
@@ -469,16 +596,22 @@ class TestDeleteCortex:
     @pytest.mark.asyncio
     async def test_delete_cortex_not_implemented(self):
         """Test that delete_cortex is not yet implemented."""
-        with pytest.raises(NotImplementedError):
-            await delete_cortex("test_id")
+        with patch("src.synapso.cortex_manager.get_config"):
+            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+                cm = CortexManager()
+                with pytest.raises(NotImplementedError):
+                    await cm.delete_cortex("test_id")
 
 
 class TestPurgeCortex:
     @pytest.mark.asyncio
     async def test_purge_cortex_not_implemented(self):
         """Test that purge_cortex is not yet implemented."""
-        with pytest.raises(NotImplementedError):
-            await purge_cortex("test_id")
+        with patch("src.synapso.cortex_manager.get_config"):
+            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+                cm = CortexManager()
+                with pytest.raises(NotImplementedError):
+                    await cm.purge_cortex("test_id")
 
 
 # Integration tests
