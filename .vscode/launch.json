@@ -23,6 +23,19 @@
                 "${workspaceFolder}/tests"
             ],
             "console": "integratedTerminal",
+        },
+        {
+            "name": "Pytest with Coverage: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "--durations=10",
+                "--cov=src/synapso",
+                "--cov-report=term-missing",
+                "${file}"
+            ],
+            "console": "integratedTerminal",
         }
     ]
 }

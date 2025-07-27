@@ -9,18 +9,18 @@ from ..vectorizer.factory import VectorizerFactory
 
 
 async def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
-    global_config = get_config()
-
-    chunker_type = global_config.chunker.chunker_type
-    chunker = ChunkerFactory.create_chunker(chunker_type)
-
-    vectorizer_type = global_config.vectorizer.vectorizer_type
-    vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
-
-    vector_store_type = global_config.vector_store.vector_db_path
-    vector_store = VectorStoreFactory.get_vector_store(vector_store_type)
-
     try:
+        global_config = get_config()
+
+        chunker_type = global_config.chunker.chunker_type
+        chunker = ChunkerFactory.create_chunker(chunker_type)
+
+        vectorizer_type = global_config.vectorizer.vectorizer_type
+        vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
+
+        vector_store_type = global_config.vector_store.vector_db_path
+        vector_store = VectorStoreFactory.get_vector_store(vector_store_type)
+
         chunks = chunker.chunk_file(str(file_path))
         vectors = vectorizer.vectorize_batch(chunks)
 

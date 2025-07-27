@@ -130,12 +130,13 @@ async def initialize_cortex(cortex_id: str, index_now: bool = True) -> bool:
     cortex = await get_cortex_by_id(cortex_id)
     cortex_path = cortex.path
     synapso_dir_path = Path(cortex_path) / ".synapso"
-    synapso_dir_path.mkdir(exist_ok=True)
+    synapso_dir_path.mkdir()
 
     # Initialize the file_list.csv file
     file_list_path = _get_file_list_path(cortex_path)
-    file_list_path.touch(exist_ok=True)
+    file_list_path.touch()
 
+    indexing_result = True
     if index_now:
         indexing_result = await index_cortex(cortex_id=cortex_id)
 
@@ -172,7 +173,9 @@ async def index_cortex(cortex_id: str) -> bool:
         return True
 
 
-async def delete_cortex(cortex_id: str) -> bool: ...
+async def delete_cortex(cortex_id: str) -> bool:
+    raise NotImplementedError
 
 
-async def purge_cortex(cortex_id: str) -> bool: ...
+async def purge_cortex(cortex_id: str) -> bool:
+    raise NotImplementedError
