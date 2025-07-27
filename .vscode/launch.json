@@ -19,7 +19,7 @@
             "args": [
                 "--durations=10",
                 "--cov=src/synapso",
-                "--cov-report=term-missing",
+                "--cov-report=xml",
                 "${workspaceFolder}/tests"
             ],
             "console": "integratedTerminal",
@@ -32,7 +32,7 @@
             "args": [
                 "--durations=10",
                 "--cov=src/synapso",
-                "--cov-report=term-missing",
+                "--cov-report=xml",
                 "${file}"
             ],
             "console": "integratedTerminal",

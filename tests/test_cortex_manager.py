@@ -48,8 +48,10 @@ class TestFileRecord:
         path = Path("/test/file.md")
         record = FileRecord(path=path, state=FileState.ELIGIBLE)
 
+        # Test immutability by trying to modify attributes
         with pytest.raises(dataclasses.FrozenInstanceError):
-            record.path = Path("/other/file.md")
+            # This will raise FrozenInstanceError because the dataclass is frozen
+            setattr(record, "path", Path("/other/file.md"))
 
 
 class TestClassify:
@@ -224,8 +226,7 @@ class TestCreateCortex:
             assert result.cortex_id == "test_cortex_id"
             assert result.cortex_name == "Test Cortex"
             assert result.path == "/test/path"
-            assert result.created_at is not None
-            assert result.updated_at is not None
+            # created_at and updated_at are set by the database, not in Python code
             assert result.last_indexed_at is None
 
             mock_session.add.assert_called_once()
@@ -351,6 +352,7 @@ class TestInitializeCortex:
 
 class TestIndexCortex:
     @pytest.mark.asyncio
+    @patch("src.synapso.cortex_manager.get_async_engine")
     @patch("src.synapso.cortex_manager.get_cortex_by_id")
     @patch("src.synapso.cortex_manager.ingest_file")
     @patch("os.open")
@@ -363,6 +365,7 @@ class TestIndexCortex:
         mock_os_open,
         mock_ingest_file,
         mock_get_cortex,
+        mock_get_async_engine,
     ):
         """Test successful cortex indexing."""
         mock_cortex = MagicMock()
@@ -370,25 +373,34 @@ class TestIndexCortex:
         mock_get_cortex.return_value = mock_cortex
         mock_ingest_file.return_value = (True, None)
 
-        with (
-            patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
-            patch("builtins.open", create=True) as mock_open,
-            patch("csv.writer") as mock_csv_writer,
-        ):
-            # Setup mock file records
-            mock_file_walk.return_value = [
-                FileRecord(Path("/test/path/file1.md"), FileState.ELIGIBLE),
-                FileRecord(Path("/test/path/file2.txt"), FileState.UNSUPPORTED_FORMAT),
-            ]
+        mock_session = AsyncMock(spec=AsyncSession)
+        mock_engine = MagicMock()
+        mock_get_async_engine.return_value = mock_engine
 
-            mock_writer = MagicMock()
-            mock_csv_writer.return_value = mock_writer
+        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+            mock_async_session.return_value.__aenter__.return_value = mock_session
 
-            result = await index_cortex("test_id")
+            with (
+                patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
+                patch("builtins.open", create=True) as mock_open,
+                patch("csv.writer") as mock_csv_writer,
+            ):
+                # Setup mock file records
+                mock_file_walk.return_value = [
+                    FileRecord(Path("/test/path/file1.md"), FileState.ELIGIBLE),
+                    FileRecord(
+                        Path("/test/path/file2.txt"), FileState.UNSUPPORTED_FORMAT
+                    ),
+                ]
 
-            assert result is True
-            mock_writer.writerow.assert_called()
-            mock_ingest_file.assert_called_once()
+                mock_writer = MagicMock()
+                mock_csv_writer.return_value = mock_writer
+
+                result = await index_cortex("test_id")
+
+                assert result is True
+                mock_writer.writerow.assert_called()
+                mock_ingest_file.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.synapso.cortex_manager.get_cortex_by_id")
@@ -398,12 +410,14 @@ class TestIndexCortex:
         self, mock_os_close, mock_os_open, mock_get_cortex
     ):
         """Test indexing with invalid cortex ID."""
-        mock_get_cortex.return_value = None
+        # get_cortex_by_id raises ValueError when cortex is not found
+        mock_get_cortex.side_effect = ValueError("Cortex with id invalid_id not found")
 
-        with pytest.raises(ValueError, match="Invalid cortex id"):
+        with pytest.raises(ValueError, match="not found"):
             await index_cortex("invalid_id")
 
     @pytest.mark.asyncio
+    @patch("src.synapso.cortex_manager.get_async_engine")
     @patch("src.synapso.cortex_manager.get_cortex_by_id")
     @patch("src.synapso.cortex_manager.ingest_file")
     @patch("os.open")
@@ -416,6 +430,7 @@ class TestIndexCortex:
         mock_os_open,
         mock_ingest_file,
         mock_get_cortex,
+        mock_get_async_engine,
     ):
         """Test cortex indexing with ingestion errors."""
         mock_cortex = MagicMock()
@@ -423,24 +438,31 @@ class TestIndexCortex:
         mock_get_cortex.return_value = mock_cortex
         mock_ingest_file.return_value = (False, {"error": "test error"})
 
-        with (
-            patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
-            patch("builtins.open", create=True) as mock_open,
-            patch("csv.writer") as mock_csv_writer,
-            patch("json.dumps") as mock_json_dumps,
-        ):
-            mock_file_walk.return_value = [
-                FileRecord(Path("/test/path/file1.md"), FileState.ELIGIBLE),
-            ]
+        mock_session = AsyncMock(spec=AsyncSession)
+        mock_engine = MagicMock()
+        mock_get_async_engine.return_value = mock_engine
 
-            mock_writer = MagicMock()
-            mock_csv_writer.return_value = mock_writer
-            mock_json_dumps.return_value = '{"error": "test error"}'
+        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+            mock_async_session.return_value.__aenter__.return_value = mock_session
 
-            result = await index_cortex("test_id")
+            with (
+                patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
+                patch("builtins.open", create=True) as mock_open,
+                patch("csv.writer") as mock_csv_writer,
+                patch("json.dumps") as mock_json_dumps,
+            ):
+                mock_file_walk.return_value = [
+                    FileRecord(Path("/test/path/file1.md"), FileState.ELIGIBLE),
+                ]
 
-            assert result is True  # Function returns True even with errors
-            mock_ingest_file.assert_called_once()
+                mock_writer = MagicMock()
+                mock_csv_writer.return_value = mock_writer
+                mock_json_dumps.return_value = '{"error": "test error"}'
+
+                result = await index_cortex("test_id")
+
+                assert result is False  # Function returns False when there are errors
+                mock_ingest_file.assert_called_once()
 
 
 class TestDeleteCortex:
