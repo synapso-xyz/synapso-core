@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Iterator
@@ -131,8 +131,7 @@ async def initialize_cortex(cortex_id: str, index_now: bool = True) -> bool:
     synapso_dir_path.mkdir()
 
     # Initialize the file_list.csv file
-    file_list_path = _get_file_list_path(cortex_path)
-    file_list_path.touch()
+    _get_file_list_path(cortex_path)
 
     indexing_result = True
     if index_now:
@@ -148,7 +147,7 @@ async def index_cortex(cortex_id: str) -> bool:
     file_list_path = _get_file_list_path(directory_path=cortex_path)
     ingestion_errors_path = _get_ingestion_errors_path(directory_path=cortex_path)
 
-    has_errors = True
+    has_errors = False
     with (
         file_list_path.open("w", newline="", encoding="utf-8") as f,
         ingestion_errors_path.open("w", newline="", encoding="utf-8") as err_file,
@@ -171,7 +170,7 @@ async def index_cortex(cortex_id: str) -> bool:
             .where(Cortex.cortex_id == cortex_id)
             .values(
                 {
-                    Cortex.updated_at: datetime.now(),
+                    Cortex.updated_at: datetime.now(timezone.utc),
                 }
             )
         )
