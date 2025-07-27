@@ -8,7 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Iterator
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config_manager import GlobalConfig, get_config
@@ -103,8 +103,6 @@ async def create_cortex(cortex_name: str | None, folder_path: str) -> Cortex:
         cortex_id=cortex_id,
         cortex_name=cortex_name,
         path=folder_path,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
         last_indexed_at=None,  # We have not indexed the cortex yet.
     )
 
@@ -145,14 +143,12 @@ async def initialize_cortex(cortex_id: str, index_now: bool = True) -> bool:
 
 async def index_cortex(cortex_id: str) -> bool:
     cortex = await get_cortex_by_id(cortex_id)
-    if cortex is None:
-        raise ValueError("Invalid cortex id")
     cortex_path = cortex.path
 
     file_list_path = _get_file_list_path(directory_path=cortex_path)
     ingestion_errors_path = _get_ingestion_errors_path(directory_path=cortex_path)
 
-    ingestion_status = True
+    has_errors = True
     with (
         file_list_path.open("w", newline="", encoding="utf-8") as f,
         ingestion_errors_path.open("w", newline="", encoding="utf-8") as err_file,
@@ -165,12 +161,25 @@ async def index_cortex(cortex_id: str) -> bool:
             writer.writerow([str(file_path), str(file_eligibility.name.lower())])
 
             if file_eligibility == FileState.ELIGIBLE:
-                ingestion_status, error_context = await ingest_file(file_path)
-                if ingestion_status is False:
+                success, error_context = await ingest_file(file_path)
+                if not success:
                     err_file.write(json.dumps(error_context) + "\n")
-                    ingestion_status = False
+                    has_errors = True
 
-        return True
+        update_stmt = (
+            update(Cortex)
+            .where(Cortex.cortex_id == cortex_id)
+            .values(
+                {
+                    Cortex.updated_at: datetime.now(),
+                }
+            )
+        )
+        async with AsyncSession(get_async_engine()) as session:
+            await session.execute(update_stmt)
+            await session.commit()
+
+        return not has_errors
 
 
 async def delete_cortex(cortex_id: str) -> bool:

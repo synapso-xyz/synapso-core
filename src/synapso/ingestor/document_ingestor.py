@@ -29,6 +29,6 @@ async def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
 
         return True, None
     except Exception as e:
-        traceback = tb.extract_stack()
+        traceback = tb.format_exc()
         error_context = {"error_type": str(e), "traceback": traceback}
         return False, error_context
