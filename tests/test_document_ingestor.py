@@ -369,7 +369,7 @@ class TestIngestFile:
         assert "error_type" in error_context
         assert "traceback" in error_context
         assert error_context["error_type"] == "Test error"
-        assert isinstance(error_context["traceback"], list)
+        assert isinstance(error_context["traceback"], str)
 
     @pytest.mark.asyncio
     @patch("src.synapso.ingestor.document_ingestor.get_config")
