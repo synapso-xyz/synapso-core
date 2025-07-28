@@ -4,3 +4,4 @@ pytest
 chonkie[st,hub]
 pydantic
 loguru
+aiosqlite

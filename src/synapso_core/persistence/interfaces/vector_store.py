@@ -27,7 +27,7 @@ class VectorStore(ABC):
     """
 
     @abstractmethod
-    def setup(self) -> bool:
+    def vectorstore_setup(self) -> bool:
         pass
 
     @abstractmethod
@@ -76,7 +76,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def teardown(self) -> bool:
+    def vectorstore_teardown(self) -> bool:
         """
         Clean up or release any resources held by the vector store.
         """
