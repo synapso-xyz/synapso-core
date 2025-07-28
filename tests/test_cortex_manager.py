@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.synapso.cortex_manager import (
+from src.synapso_core.cortex_manager import (
     SUPPORTED_FORMATS,
     Cortex,
     CortexManager,
@@ -165,8 +165,8 @@ class TestValidateCortexPath:
 
 
 class TestCortexManagerInit:
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
     def test_cortex_manager_init(self, mock_factory, mock_get_config):
         """Test CortexManager initialization."""
         # Setup mock config with nested meta_db_type
@@ -196,10 +196,10 @@ class TestCortexManagerInit:
 
 
 class TestCreateCortex:
-    @patch("src.synapso.cortex_manager.uuid")
-    @patch("src.synapso.cortex_manager._validate_cortex_path")
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.uuid")
+    @patch("src.synapso_core.cortex_manager._validate_cortex_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
     async def test_create_cortex_success(
         self, mock_factory, mock_get_config, mock_validate_path, mock_uuid
     ):
@@ -220,7 +220,9 @@ class TestCreateCortex:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             # Create CortexManager instance
@@ -239,9 +241,9 @@ class TestCreateCortex:
             mock_session.add.assert_called_once()
             mock_session.commit.assert_called_once()
 
-    @patch("src.synapso.cortex_manager._validate_cortex_path")
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager._validate_cortex_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
     async def test_create_cortex_with_none_name(
         self, mock_factory, mock_get_config, mock_validate_path
     ):
@@ -260,7 +262,9 @@ class TestCreateCortex:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             cm = CortexManager()
@@ -269,16 +273,16 @@ class TestCreateCortex:
 
     async def test_create_cortex_invalid_path(self):
         """Test cortex creation with invalid path."""
-        with patch("src.synapso.cortex_manager.get_config"):
-            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+        with patch("src.synapso_core.cortex_manager.get_config"):
+            with patch("src.synapso_core.cortex_manager.MetaStoreFactory"):
                 cm = CortexManager()
                 with pytest.raises(ValueError):
                     await cm.create_cortex("Test", "/nonexistent/path")
 
 
 class TestGetCortexById:
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
     async def test_get_cortex_by_id_success(self, mock_factory, mock_get_config):
         """Test successful cortex retrieval by ID."""
         mock_cortex = MagicMock(spec=Cortex)
@@ -302,15 +306,17 @@ class TestGetCortexById:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             cm = CortexManager()
             result = await cm.get_cortex_by_id("test_id")
             assert result == mock_cortex
 
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
     async def test_get_cortex_by_id_not_found(self, mock_factory, mock_get_config):
         """Test cortex retrieval when cortex doesn't exist."""
         mock_session = AsyncMock(spec=AsyncSession)
@@ -330,7 +336,9 @@ class TestGetCortexById:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             cm = CortexManager()
@@ -340,11 +348,11 @@ class TestGetCortexById:
 
 class TestInitializeCortex:
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
-    @patch("src.synapso.cortex_manager.CortexManager.index_cortex")
-    @patch("src.synapso.cortex_manager._get_file_list_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso_core.cortex_manager.CortexManager.index_cortex")
+    @patch("src.synapso_core.cortex_manager._get_file_list_path")
     @patch("os.mkdir")
     async def test_initialize_cortex_success(
         self,
@@ -385,10 +393,10 @@ class TestInitializeCortex:
         mock_index_cortex.assert_called_once_with(cortex_id="test_id")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
-    @patch("src.synapso.cortex_manager._get_file_list_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso_core.cortex_manager._get_file_list_path")
     @patch("os.mkdir")
     async def test_initialize_cortex_no_index(
         self,
@@ -428,12 +436,12 @@ class TestInitializeCortex:
 
 class TestIndexCortex:
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
-    @patch("src.synapso.cortex_manager.ingest_file")
-    @patch("src.synapso.cortex_manager._get_file_list_path")
-    @patch("src.synapso.cortex_manager._get_ingestion_errors_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso_core.cortex_manager.ingest_file")
+    @patch("src.synapso_core.cortex_manager._get_file_list_path")
+    @patch("src.synapso_core.cortex_manager._get_ingestion_errors_path")
     @patch("io.open")
     async def test_index_cortex_success(
         self,
@@ -471,11 +479,13 @@ class TestIndexCortex:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             with (
-                patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
+                patch("src.synapso_core.cortex_manager._file_walk") as mock_file_walk,
                 patch("builtins.open", create=True) as mock_open,
                 patch("csv.writer") as mock_csv_writer,
             ):
@@ -498,9 +508,9 @@ class TestIndexCortex:
                 mock_ingest_file.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.CortexManager.get_cortex_by_id")
     async def test_index_cortex_invalid_id(
         self, mock_get_cortex, mock_factory, mock_get_config
     ):
@@ -525,12 +535,12 @@ class TestIndexCortex:
             await cm.index_cortex("invalid_id")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.cortex_manager.get_config")
-    @patch("src.synapso.cortex_manager.MetaStoreFactory")
-    @patch("src.synapso.cortex_manager.CortexManager.get_cortex_by_id")
-    @patch("src.synapso.cortex_manager.ingest_file")
-    @patch("src.synapso.cortex_manager._get_file_list_path")
-    @patch("src.synapso.cortex_manager._get_ingestion_errors_path")
+    @patch("src.synapso_core.cortex_manager.get_config")
+    @patch("src.synapso_core.cortex_manager.MetaStoreFactory")
+    @patch("src.synapso_core.cortex_manager.CortexManager.get_cortex_by_id")
+    @patch("src.synapso_core.cortex_manager.ingest_file")
+    @patch("src.synapso_core.cortex_manager._get_file_list_path")
+    @patch("src.synapso_core.cortex_manager._get_ingestion_errors_path")
     @patch("io.open")
     async def test_index_cortex_ingestion_error(
         self,
@@ -568,11 +578,13 @@ class TestIndexCortex:
         mock_factory.get_meta_store.return_value = mock_meta_store
         mock_meta_store.get_async_engine.return_value = mock_engine
 
-        with patch("src.synapso.cortex_manager.AsyncSession") as mock_async_session:
+        with patch(
+            "src.synapso_core.cortex_manager.AsyncSession"
+        ) as mock_async_session:
             mock_async_session.return_value.__aenter__.return_value = mock_session
 
             with (
-                patch("src.synapso.cortex_manager._file_walk") as mock_file_walk,
+                patch("src.synapso_core.cortex_manager._file_walk") as mock_file_walk,
                 patch("builtins.open", create=True) as mock_open,
                 patch("csv.writer") as mock_csv_writer,
                 patch("json.dumps") as mock_json_dumps,
@@ -596,8 +608,8 @@ class TestDeleteCortex:
     @pytest.mark.asyncio
     async def test_delete_cortex_not_implemented(self):
         """Test that delete_cortex is not yet implemented."""
-        with patch("src.synapso.cortex_manager.get_config"):
-            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+        with patch("src.synapso_core.cortex_manager.get_config"):
+            with patch("src.synapso_core.cortex_manager.MetaStoreFactory"):
                 cm = CortexManager()
                 with pytest.raises(NotImplementedError):
                     await cm.delete_cortex("test_id")
@@ -607,8 +619,8 @@ class TestPurgeCortex:
     @pytest.mark.asyncio
     async def test_purge_cortex_not_implemented(self):
         """Test that purge_cortex is not yet implemented."""
-        with patch("src.synapso.cortex_manager.get_config"):
-            with patch("src.synapso.cortex_manager.MetaStoreFactory"):
+        with patch("src.synapso_core.cortex_manager.get_config"):
+            with patch("src.synapso_core.cortex_manager.MetaStoreFactory"):
                 cm = CortexManager()
                 with pytest.raises(NotImplementedError):
                     await cm.purge_cortex("test_id")
