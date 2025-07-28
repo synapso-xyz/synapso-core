@@ -3,17 +3,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.synapso.ingestor.document_ingestor import ingest_file
+from src.synapso_core.ingestor.document_ingestor import ingest_file
 
 
 class TestIngestFile:
     """Test cases for the ingest_file function."""
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_success(
         self,
         mock_vector_store_factory,
@@ -65,10 +65,10 @@ class TestIngestFile:
         mock_vector_store.insert.assert_any_call("vector2")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_empty_chunks(
         self,
         mock_vector_store_factory,
@@ -108,10 +108,10 @@ class TestIngestFile:
         mock_vector_store.insert.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_chunker_error(
         self,
         mock_vector_store_factory,
@@ -149,10 +149,10 @@ class TestIngestFile:
         assert error_context["error_type"] == "Chunker failed"
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_vectorizer_error(
         self,
         mock_vector_store_factory,
@@ -185,10 +185,10 @@ class TestIngestFile:
         assert error_context["error_type"] == "Vectorizer failed"
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_vector_store_error(
         self,
         mock_vector_store_factory,
@@ -226,7 +226,7 @@ class TestIngestFile:
         assert error_context["error_type"] == "Vector store failed"
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
     async def test_ingest_file_config_error(self, mock_get_config):
         """Test file ingestion when config loading fails."""
         # Setup mocks
@@ -242,10 +242,10 @@ class TestIngestFile:
         assert error_context["error_type"] == "Config failed"
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_mismatched_chunks_vectors(
         self,
         mock_vector_store_factory,
@@ -289,10 +289,10 @@ class TestIngestFile:
         mock_vector_store.insert.assert_any_call("vector2")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_with_different_file_types(
         self,
         mock_vector_store_factory,
@@ -338,10 +338,10 @@ class TestIngestFile:
         mock_chunker.chunk_file.assert_called_with(str(path_obj))
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_traceback_in_error_context(
         self,
         mock_vector_store_factory,
@@ -372,10 +372,10 @@ class TestIngestFile:
         assert isinstance(error_context["traceback"], str)
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_large_number_of_chunks(
         self,
         mock_vector_store_factory,
@@ -419,10 +419,10 @@ class TestIngestFile:
             mock_vector_store.insert.assert_any_call(f"vector_{i}")
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_file_partial_vector_store_failure(
         self,
         mock_vector_store_factory,
@@ -496,10 +496,10 @@ More content in a subsection.
         return file_path
 
     @pytest.mark.asyncio
-    @patch("src.synapso.ingestor.document_ingestor.get_config")
-    @patch("src.synapso.ingestor.document_ingestor.ChunkerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorizerFactory")
-    @patch("src.synapso.ingestor.document_ingestor.VectorStoreFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.get_config")
+    @patch("src.synapso_core.ingestor.document_ingestor.ChunkerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorizerFactory")
+    @patch("src.synapso_core.ingestor.document_ingestor.VectorStoreFactory")
     async def test_ingest_real_markdown_file(
         self,
         mock_vector_store_factory,

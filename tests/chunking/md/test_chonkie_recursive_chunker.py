@@ -2,10 +2,10 @@ import os
 
 import pytest
 
-from src.synapso.chunking.implementations.md.chonkie_recursive_chunker import (
+from src.synapso_core.chunking.implementations.md.chonkie_recursive_chunker import (
     ChonkieRecursiveChunker,
 )
-from src.synapso.chunking.interface import Chunk
+from src.synapso_core.chunking.interface import Chunk
 
 RESOURCES_DIR = os.path.join(os.path.dirname(__file__), "../../..", "resources")
 SAMPLE_MD = os.path.join(RESOURCES_DIR, "sample.md")

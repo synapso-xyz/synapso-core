@@ -3,7 +3,7 @@ import tempfile
 
 import pytest
 
-from src.synapso import config_manager
+from src.synapso_core import config_manager
 
 RESOURCES_DIR = os.path.join(os.path.dirname(__file__), "../resources/config")
 

@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from src.synapso.chunking.interface import Chunk
-from src.synapso.vectorizer.implementations.sentence_transformer_embeddings import (
+from src.synapso_core.chunking.interface import Chunk
+from src.synapso_core.vectorizer.implementations.sentence_transformer_embeddings import (
     SentenceTransformerVectorizer,
     _content_hash,
 )
-from src.synapso.vectorizer.interface import Vector
+from src.synapso_core.vectorizer.interface import Vector
 
 
 @pytest.fixture(scope="session")
