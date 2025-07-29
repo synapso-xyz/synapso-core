@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 
-@dataclass
 class VectorMetadata(ABC):
     """
     A metadata object for a vector.
@@ -13,12 +12,16 @@ class VectorMetadata(ABC):
     def to_dict(self) -> Dict:
         pass
 
+    @classmethod
+    def from_dict(cls, data: Dict) -> "VectorMetadata":
+        raise NotImplementedError("Subclasses must implement from_dict")
+
 
 @dataclass
 class Vector:
     vector_id: str
     vector: List[float]
-    metadata: VectorMetadata
+    metadata: VectorMetadata | None = None
 
 
 class VectorStore(ABC):
@@ -27,7 +30,7 @@ class VectorStore(ABC):
     """
 
     @abstractmethod
-    def setup(self) -> bool:
+    def vectorstore_setup(self) -> bool:
         pass
 
     @abstractmethod
@@ -76,7 +79,7 @@ class VectorStore(ABC):
         pass
 
     @abstractmethod
-    def teardown(self) -> bool:
+    def vectorstore_teardown(self) -> bool:
         """
         Clean up or release any resources held by the vector store.
         """
