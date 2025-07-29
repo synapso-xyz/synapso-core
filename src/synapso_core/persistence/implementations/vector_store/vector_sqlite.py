@@ -138,19 +138,7 @@ class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
                     similar_vectors.append((vector, score))
             return similar_vectors
         except Exception:
-            # Fallback to simple retrieval if VSS is not available
-            # This is a basic implementation that just returns vectors without similarity scoring
-            search_stmt = """
-                SELECT vector_id FROM vectors LIMIT ?
-            """
-            results = self._db.execute(search_stmt, (top_k,)).fetchall()
-
-            similar_vectors = []
-            for (vector_id,) in results:
-                vector = self.get_by_id(vector_id)
-                if vector is not None:
-                    similar_vectors.append((vector, 1.0))  # Default score of 1.0
-            return similar_vectors
+            raise RuntimeError("Vector similarity search requires sqlite_vss extension")
 
     def delete(self, vector_id: str) -> bool:
         raise NotImplementedError("Not implemented")
