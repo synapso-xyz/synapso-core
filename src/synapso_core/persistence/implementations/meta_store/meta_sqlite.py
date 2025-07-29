@@ -35,7 +35,9 @@ class MetaSqliteAdapter(SqliteEngineMixin, MetaStore):
         return True
 
     def metastore_teardown(self) -> bool:
-        return super().metastore_teardown()
+        # Implement any necessary teardown logic here
+        self.close()
+        return True
 
     def _setup_tables(self) -> None:
         MetaStoreBase.metadata.create_all(self.get_sync_engine())
