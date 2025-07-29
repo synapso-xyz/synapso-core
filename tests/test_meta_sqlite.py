@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import text
 
-from src.synapso.persistence.implementations.meta_store.meta_sqlite import (
+from src.synapso_core.persistence.implementations.meta_store.meta_sqlite import (
     MetaSqliteAdapter,
     create_sqlite_db_if_not_exists,
 )
@@ -69,7 +69,7 @@ class TestMetaSqliteAdapter:
         assert not db_path.exists()
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
             adapter = MetaSqliteAdapter()
@@ -86,24 +86,21 @@ class TestMetaSqliteAdapter:
         mock_config, db_path = temp_db_config
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
-            adapter = MetaSqliteAdapter()
-            adapter.metastore_setup()
+            with MetaSqliteAdapter() as adapter:
+                adapter.metastore_setup()
 
-            # Get the sync engine and check if tables exist
-            engine = adapter.get_sync_engine()
-
-            # Check if the cortex table exists
-            with engine.connect() as conn:
-                result = conn.execute(
-                    text(
-                        "SELECT name FROM sqlite_master WHERE type='table' AND name='cortex'"
+                # Verify tables were created by checking if we can query them
+                engine = adapter.get_sync_engine()
+                with engine.connect() as conn:
+                    # Check if tables exist by querying them
+                    result = conn.execute(
+                        text("SELECT name FROM sqlite_master WHERE type='table'")
                     )
-                )
-                tables = [row[0] for row in result]
-                assert "cortex" in tables
+                    table_names = [row[0] for row in result]
+                    assert "cortex" in table_names
 
     def test_metastore_setup_wrong_db_type(self):
         """Test that metastore_setup raises error for wrong database type."""
@@ -123,20 +120,18 @@ class TestMetaSqliteAdapter:
         )()
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
-            adapter = MetaSqliteAdapter()
-
             with pytest.raises(ValueError, match="Meta store type is not sqlite"):
-                adapter.metastore_setup()
+                adapter = MetaSqliteAdapter()
 
     def test_get_sync_engine(self, temp_db_config):
         """Test getting a sync engine."""
         mock_config, db_path = temp_db_config
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
             adapter = MetaSqliteAdapter()
@@ -155,7 +150,7 @@ class TestMetaSqliteAdapter:
         mock_config, db_path = temp_db_config
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
             adapter = MetaSqliteAdapter()
@@ -168,39 +163,56 @@ class TestMetaSqliteAdapter:
         """Test that data persists between adapter instances."""
         mock_config, db_path = temp_db_config
 
+        # Create first adapter and insert data
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
-            # Create first adapter and insert data
-            adapter1 = MetaSqliteAdapter()
-            adapter1.metastore_setup()
+            with MetaSqliteAdapter() as adapter1:
+                adapter1.metastore_setup()
 
-            engine1 = adapter1.get_sync_engine()
-            with engine1.connect() as conn:
-                conn.execute(
-                    text("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)")
-                )
-                conn.execute(
-                    text("INSERT INTO test_table (id, name) VALUES (1, 'test')")
-                )
-                conn.commit()
+                # Insert some test data
+                engine = adapter1.get_sync_engine()
+                with engine.connect() as conn:
+                    from datetime import datetime
+
+                    now = datetime.now()
+                    conn.execute(
+                        text(
+                            "INSERT INTO cortex (cortex_id, cortex_name, path, created_at, updated_at) VALUES (:cortex_id, :cortex_name, :path, :created_at, :updated_at)"
+                        ),
+                        {
+                            "cortex_id": "test_id",
+                            "cortex_name": "test_cortex",
+                            "path": "/test/path",
+                            "created_at": now,
+                            "updated_at": now,
+                        },
+                    )
+                    conn.commit()
 
             # Create second adapter and verify data persists
-            adapter2 = MetaSqliteAdapter()
-            adapter2.metastore_setup()
+            with MetaSqliteAdapter() as adapter2:
+                adapter2.metastore_setup()
 
-            engine2 = adapter2.get_sync_engine()
-            with engine2.connect() as conn:
-                result = conn.execute(text("SELECT name FROM test_table WHERE id = 1"))
-                assert result.scalar() == "test"
+                # Verify data still exists
+                engine = adapter2.get_sync_engine()
+                with engine.connect() as conn:
+                    result = conn.execute(
+                        text("SELECT * FROM cortex WHERE cortex_id = :cortex_id"),
+                        {"cortex_id": "test_id"},
+                    )
+                    row = result.fetchone()
+                    assert row is not None
+                    assert row[1] == "test_cortex"  # cortex_name column
+                    assert row[2] == "/test/path"  # path column
 
     def test_multiple_setup_calls(self, temp_db_config):
         """Test that multiple setup calls don't cause issues."""
         mock_config, db_path = temp_db_config
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
             adapter = MetaSqliteAdapter()
@@ -242,7 +254,7 @@ class TestMetaSqliteAdapterIntegration:
         )()
 
         with patch(
-            "src.synapso.persistence.implementations.meta_store.meta_sqlite.get_config",
+            "src.synapso_core.persistence.implementations.meta_store.meta_sqlite.get_config",
             return_value=mock_config,
         ):
             # Setup
