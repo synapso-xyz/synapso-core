@@ -10,6 +10,25 @@ from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 from ...interfaces.vector_store import Vector, VectorMetadata, VectorStore
 
 
+class SqliteVectorMetadata(VectorMetadata):
+    def __init__(self, content_hash: str, additional_data: Dict):
+        self.content_hash = content_hash
+        self.additional_data = additional_data
+
+    def to_dict(self) -> Dict:
+        return {
+            "content_hash": self.content_hash,
+            "additional_data": self.additional_data,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "VectorMetadata":
+        return cls(
+            content_hash=data.get("content_hash", ""),
+            additional_data=data.get("additional_data", {}),
+        )
+
+
 class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
     def __init__(self):
         # Initialize with a placeholder path, will be set in metastore_setup
@@ -96,20 +115,7 @@ class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
                 metadata_dict = json.loads(result_metadata[0])
                 # For now, we'll create a simple metadata object
                 # In a real implementation, you'd need to know the concrete class
-                metadata = type(
-                    "SimpleMetadata",
-                    (VectorMetadata,),
-                    {
-                        "content_hash": metadata_dict.get("content_hash", ""),
-                        "additional_data": {
-                            k: v
-                            for k, v in metadata_dict.items()
-                            if k != "content_hash"
-                        },
-                        "to_dict": lambda self: metadata_dict,
-                        "from_dict": classmethod(lambda cls, data: cls()),
-                    },
-                )()
+                metadata = SqliteVectorMetadata.from_dict(metadata_dict)
             return Vector(vector_id, vector, metadata)
         return None
 
