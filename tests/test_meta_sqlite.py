@@ -3,10 +3,8 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import text
 
-from src.synapso_core.persistence.implementations.meta_store.meta_sqlite import (
-    MetaSqliteAdapter,
-    create_sqlite_db_if_not_exists,
-)
+from src.synapso_core.persistence.implementations.meta_store.meta_sqlite import MetaSqliteAdapter
+from src.synapso_core.sqlite_utils import create_sqlite_db_if_not_exists
 
 
 class TestCreateSqliteDbIfNotExists:
