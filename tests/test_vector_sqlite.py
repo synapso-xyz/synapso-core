@@ -512,7 +512,7 @@ class TestVectorSqliteAdapter:
             try:
                 db_connection.execute("SELECT 1")
                 # If we get here, the connection is still open (which is unexpected)
-                assert False, "Database connection should be closed"
+                raise AssertionError("Database connection should be closed")
             except (sqlite3.OperationalError, sqlite3.ProgrammingError) as e:
                 # This is expected - the connection should be closed
                 assert (
