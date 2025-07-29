@@ -5,15 +5,25 @@ from sqlalchemy import Engine, engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def create_sqlite_db_if_not_exists(db_path):
-    # Check if the database file already exists
-    if not os.path.exists(db_path):
-        # Connect to the database (this will create the file)
-        conn = sqlite3.connect(db_path)
-        conn.close()
-        print(f"Database created at: {db_path}")
-    else:
-        print(f"Database already exists at: {db_path}")
+    """Create SQLite database file if it doesn't exist."""
+    try:
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
+        if not os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            conn.close()
+            logger.info(f"Database created at: {db_path}")
+        else:
+            logger.debug(f"Database already exists at: {db_path}")
+    except Exception as e:
+        logger.error(f"Failed to create database at {db_path}: {e}")
+        raise
 
 
 class SqliteEngineMixin:
