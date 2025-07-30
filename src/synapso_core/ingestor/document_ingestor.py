@@ -8,7 +8,7 @@ from ..persistence.factory import VectorStoreFactory
 from ..vectorizer.factory import VectorizerFactory
 
 
-async def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
+def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
     try:
         global_config = get_config()
 
@@ -18,7 +18,7 @@ async def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
         vectorizer_type = global_config.vectorizer.vectorizer_type
         vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
 
-        vector_store_type = global_config.vector_store.vector_db_path
+        vector_store_type = global_config.vector_store.vector_db_type
         vector_store = VectorStoreFactory.get_vector_store(vector_store_type)
 
         chunks = chunker.chunk_file(str(file_path))

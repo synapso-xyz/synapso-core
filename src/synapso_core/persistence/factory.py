@@ -1,3 +1,5 @@
+from .implementations.meta_store import MetaSqliteAdapter
+from .implementations.vector_store import VectorSqliteAdapter
 from .interfaces import MetaStore, PrivateChunkStore, VectorStore
 
 
@@ -7,7 +9,7 @@ class MetaStoreFactory:
         """
         Read the global config and prepare the meta store.
         """
-        available_meta_stores = {}
+        available_meta_stores = {"sqlite": MetaSqliteAdapter}
         if meta_store_type not in available_meta_stores:
             raise ValueError(f"Meta store type {meta_store_type} not found")
         return available_meta_stores[meta_store_type]()
@@ -31,7 +33,7 @@ class VectorStoreFactory:
         """
         Read the global config and prepare the vector store.
         """
-        available_vector_stores = {}
+        available_vector_stores = {"sqlite": VectorSqliteAdapter}
         if vector_store_type not in available_vector_stores:
             raise ValueError(f"Vector store type {vector_store_type} not found")
         return available_vector_stores[vector_store_type]()

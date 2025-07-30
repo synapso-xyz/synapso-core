@@ -5,7 +5,7 @@ from typing import ClassVar
 import yaml
 from pydantic import BaseModel, field_validator
 
-SYNAPSO_HOME = os.getenv("SYNAPSO_HOME", os.getcwd())
+SYNAPSO_HOME = os.getenv("SYNAPSO_HOME", "~/.synapso")
 CONFIG_FILE = os.path.join(SYNAPSO_HOME, "config.yaml")
 
 

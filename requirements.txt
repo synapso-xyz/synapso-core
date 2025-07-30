@@ -34,6 +34,8 @@ fsspec==2025.7.0
     # via
     #   huggingface-hub
     #   torch
+greenlet==3.2.3
+    # via -r requirements.in
 h11==0.16.0
     # via httpcore
 hf-xet==1.1.5
@@ -84,6 +86,7 @@ networkx==3.5
     # via torch
 numpy==2.3.2
     # via
+    #   -r requirements.in
     #   accelerate
     #   chonkie
     #   scikit-learn
