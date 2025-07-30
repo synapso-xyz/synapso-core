@@ -23,11 +23,9 @@ def _assure_not_none(obj: Any, name: str) -> Any:
     return obj
 
 
-global_config: GlobalConfig = get_config()
-
-
 class QueryManager:
     def __init__(self, query_config: QueryConfig):
+        global_config: GlobalConfig = get_config()
         self.query_config = query_config
         try:
             self.vectorizer: Vectorizer = _assure_not_none(
