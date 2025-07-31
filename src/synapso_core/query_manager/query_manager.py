@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Tuple
 
 from ..chunking.interface import Chunk
 from ..config_manager import GlobalConfig, get_config
@@ -23,12 +23,11 @@ def _assure_not_none(obj: Any, name: str) -> Any:
     return obj
 
 
-global_config: GlobalConfig = get_config()
-
-
 class QueryManager:
     def __init__(self, query_config: QueryConfig):
         self.query_config = query_config
+        global_config: GlobalConfig = get_config()
+
         try:
             self.vectorizer: Vectorizer = _assure_not_none(
                 VectorizerFactory.create_vectorizer(
@@ -63,14 +62,24 @@ class QueryManager:
                 f"Failed to initialize QueryManager components: {e}"
             ) from e
 
-    def query(self, query: str) -> str:
+    def query(self, query: str) -> List[Tuple[str, float]]:
         """
         Query the vector store and return a summary of the results.
         """
         query_chunk = Chunk(text=query)
         query_vector = self.vectorizer.vectorize(query_chunk)
         results = self.vector_store.vector_search(query_vector)
-        reranked_results = self.reranker.rerank(results, query_vector)
-        vectors_only = [vector for vector, _ in reranked_results]
-        summary = self.summarizer.summarize(vectors_only)
-        return summary
+        results_with_text = [
+            (
+                result[0],
+                self.private_store.get_by_chunk_id(result[0].vector_id),
+                result[1],
+            )
+            for result in results
+        ]
+
+        reranked_results = self.reranker.rerank(results_with_text, query_vector)
+        texts_with_scores = [(text, score) for _, text, score in reranked_results]
+
+        # Sumamrize this. But for now, return the search result.
+        return texts_with_scores

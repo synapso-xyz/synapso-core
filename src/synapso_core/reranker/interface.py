@@ -11,6 +11,16 @@ class Reranker(ABC):
 
     @abstractmethod
     def rerank(
-        self, results: List[Tuple[Vector, float]], query: Vector
-    ) -> List[Tuple[Vector, float]]:
+        self, results: List[Tuple[Vector, str, float]], query: Vector
+    ) -> List[Tuple[Vector, str, float]]:
+        """
+        Rerank a list of results.
+
+        Args:
+            results: List of tuples containing vector, text, and score
+            query: Query vector
+
+        Returns:
+            List of tuples containing reranked vector, text, and score
+        """
         pass
