@@ -1,12 +1,14 @@
 import os
 from abc import ABC
+from pathlib import Path
 from typing import ClassVar
 
 import yaml
 from pydantic import BaseModel, field_validator
 
-SYNAPSO_HOME = os.getenv("SYNAPSO_HOME", os.getcwd())
-CONFIG_FILE = os.path.join(SYNAPSO_HOME, "config.yaml")
+DEFAULT_SYNAPSO_HOME = Path("~/.synapso").expanduser().resolve()
+SYNAPSO_HOME = Path(os.getenv("SYNAPSO_HOME", str(DEFAULT_SYNAPSO_HOME)))
+CONFIG_FILE = SYNAPSO_HOME / "config.yaml"
 
 
 class BaseConfig(BaseModel, ABC):

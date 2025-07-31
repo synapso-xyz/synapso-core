@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -36,8 +37,11 @@ class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
         if config.vector_store.vector_db_type != "sqlite":
             raise ValueError("Vector store type is not sqlite")
         self.vector_db_path = config.vector_store.vector_db_path
+        self.vector_db_path = str(Path(self.vector_db_path).expanduser().resolve())
+        print(f"Vector DB path: {self.vector_db_path}")
         SqliteEngineMixin.__init__(self, self.vector_db_path)
         self._db: Optional[sqlite3.Connection] = sqlite3.connect(self.vector_db_path)
+        self.vectorstore_setup()
 
     def __del__(self):
         """Clean up database connection when the adapter is deleted."""

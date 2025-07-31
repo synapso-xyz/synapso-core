@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ....config_manager import get_config
 from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 from ...interfaces.meta_store import MetaStore
@@ -10,15 +12,19 @@ class MetaSqliteAdapter(SqliteEngineMixin, MetaStore):
         if config.meta_store.meta_db_type != "sqlite":
             raise ValueError("Meta store type is not sqlite")
         self.meta_db_path = config.meta_store.meta_db_path
+        self.meta_db_path = str(Path(self.meta_db_path).expanduser().resolve())
+        print(f"Meta DB path: {self.meta_db_path}")
         SqliteEngineMixin.__init__(self, self.meta_db_path)
+        self._setup_tables()
 
     def close(self):
         """Explicitly close the database connection."""
         # SQLAlchemy engines should be disposed to close all connections
-        if hasattr(self, '_sync_engine'):
-            self._sync_engine.dispose()
-        if hasattr(self, '_async_engine'):
+        if hasattr(self, "_sync_engine"):
+            self._sync_engine.dispose()  # type: ignore
+        if hasattr(self, "_async_engine"):
             import asyncio
+
             asyncio.run(self._async_engine.dispose())
 
     def __enter__(self):

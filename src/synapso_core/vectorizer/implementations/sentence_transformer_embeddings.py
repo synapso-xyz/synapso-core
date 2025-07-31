@@ -1,4 +1,3 @@
-import hashlib
 from typing import Dict
 
 import numpy as np
@@ -6,18 +5,18 @@ from chonkie import SentenceTransformerEmbeddings
 
 from ...chunking.interface import Chunk
 from ...persistence.interfaces.vector_store import Vector, VectorMetadata
+from ...utils import get_content_hash
 from ..interface import Vectorizer
 
 _embedding_model = SentenceTransformerEmbeddings(model="all-MiniLM-L6-v2")
 
 
-def _content_hash(chunk: Chunk) -> str:
-    return hashlib.sha256(chunk.text.encode("utf-8")).hexdigest()
-
-
 class SentenceTransformerVectorMetadata(VectorMetadata):
     def __init__(self, chunk: Chunk):
-        self._metadata = {"content_hash": _content_hash(chunk), **chunk.metadata}
+        self._metadata = {
+            "content_hash": get_content_hash(chunk.text),
+            **chunk.metadata,
+        }
 
     def to_dict(self) -> Dict:
         return self._metadata
@@ -32,6 +31,6 @@ class SentenceTransformerVectorizer(Vectorizer):
         vector_vals: np.ndarray = self.embeddings.embed(chunk.text)
         return Vector(
             vector=vector_vals.tolist(),
-            vector_id=_content_hash(chunk),
+            vector_id=get_content_hash(chunk.text),
             metadata=SentenceTransformerVectorMetadata(chunk),
         )

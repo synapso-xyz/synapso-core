@@ -1,16 +1,10 @@
 {
     "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.autoImportCompletions": true,
     "python.analysis.extraPaths": [
-        "./synapso_core"
+        "./src"
     ],
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
-    "cursorpyright.analysis.autoImportCompletions": true,
-    "cursorpyright.analysis.extraPaths": [
-        "./synapso_core"
-    ],
-    "cursorpyright.analysis.typeCheckingMode": "basic",
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.formatOnSave": true,
