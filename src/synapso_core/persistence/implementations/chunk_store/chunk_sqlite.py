@@ -92,6 +92,6 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
 
 if __name__ == "__main__":
     adapter = ChunkSqliteAdapter()
-    adapter.chunk_store_setup()
+    adapter.setup()
     print(adapter.get_sync_engine())
     print(adapter.get_async_engine())
