@@ -21,7 +21,7 @@ class MetaSqliteAdapter(SqliteEngineMixin, MetaStore):
         """Explicitly close the database connection."""
         # SQLAlchemy engines should be disposed to close all connections
         if hasattr(self, "_sync_engine"):
-            self._sync_engine.dispose()
+            self._sync_engine.dispose()  # type: ignore
         if hasattr(self, "_async_engine"):
             import asyncio
 
