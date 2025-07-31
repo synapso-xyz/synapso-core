@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from ...interfaces import PrivateChunkStore
 from ...models.base import PrivateChunkStoreBase
 from ...models.private_store_models import PrivateChunk
 
+logger = logging.getLogger(__name__)
+
 
 class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
     def __init__(self):
@@ -17,7 +20,7 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
             raise ValueError("Chunk store type is not sqlite")
         self.chunk_db_path = config.private_store.private_db_path
         self.chunk_db_path = str(Path(self.chunk_db_path).expanduser().resolve())
-        print(f"Chunk DB path: {self.chunk_db_path}")
+        logger.info(f"Chunk DB path: {self.chunk_db_path}")
         SqliteEngineMixin.__init__(self, self.chunk_db_path)
         self._setup_tables()
 
@@ -29,7 +32,15 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         if hasattr(self, "_async_engine"):
             import asyncio
 
-            asyncio.run(self._async_engine.dispose())
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._async_engine.dispose())
+            except RuntimeError:
+                logger.warning("No running event loop found")
+                asyncio.run(self._async_engine.dispose())
+            except Exception as e:
+                logger.error(f"Error disposing async engine: {e}")
+                raise e
 
     def __enter__(self):
         """Context manager entry."""
@@ -68,12 +79,16 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         Insert a private chunk into the store.
         """
         content_hash = get_content_hash(chunk_contents)
-        pvt_chunk = PrivateChunk(
-            content_hash=content_hash, chunk_content=chunk_contents
-        )
-        with Session(self.get_sync_engine()) as session:
-            session.add(pvt_chunk)
-            session.commit()
+        existing = self.get_by_chunk_id(content_hash)
+        if existing:
+            logger.info(f"Chunk already exists: {content_hash}")
+        else:
+            pvt_chunk = PrivateChunk(
+                content_hash=content_hash, chunk_content=chunk_contents
+            )
+            with Session(self.get_sync_engine()) as session:
+                session.add(pvt_chunk)
+                session.commit()
         return content_hash
 
     def delete(self, chunk_id: str) -> None:
