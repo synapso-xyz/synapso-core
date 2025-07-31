@@ -1,6 +1,8 @@
 from .implementations.meta_store import MetaSqliteAdapter
+from .implementations.chunk_store import ChunkSqliteAdapter
 from .implementations.vector_store import VectorSqliteAdapter
 from .interfaces import MetaStore, PrivateChunkStore, VectorStore
+
 
 
 class MetaStoreFactory:
@@ -21,7 +23,7 @@ class PrivateStoreFactory:
         """
         Read the global config and prepare the private store.
         """
-        available_private_stores = {}
+        available_private_stores = {"sqlite": ChunkSqliteAdapter}
         if private_store_type not in available_private_stores:
             raise ValueError(f"Private store type {private_store_type} not found")
         return available_private_stores[private_store_type]()

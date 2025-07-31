@@ -1,15 +1,13 @@
 from pathlib import Path
-import hashlib
+
+from sqlalchemy.orm import Session
 
 from ....config_manager import get_config
 from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
+from ....utils import get_content_hash
 from ...interfaces import PrivateChunkStore
 from ...models.base import PrivateChunkStoreBase
 from ...models.private_store_models import PrivateChunk
-
-
-def _get_content_hash(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
 class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
@@ -56,7 +54,11 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         Get a private chunk by its chunk_id.
         """
         with Session(self.get_sync_engine()) as session:
-            chunk = session.query(PrivateChunk).filter(PrivateChunk.content_hash == chunk_id).first()
+            chunk = (
+                session.query(PrivateChunk)
+                .filter(PrivateChunk.content_hash == chunk_id)
+                .first()
+            )
             if chunk:
                 return chunk.chunk_content
             return None
@@ -65,8 +67,10 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         """
         Insert a private chunk into the store.
         """
-        content_hash = _get_content_hash(chunk_contents)
-        pvt_chunk = PrivateChunk(content_hash=content_hash, chunk_content=chunk_contents)
+        content_hash = get_content_hash(chunk_contents)
+        pvt_chunk = PrivateChunk(
+            content_hash=content_hash, chunk_content=chunk_contents
+        )
         with Session(self.get_sync_engine()) as session:
             session.add(pvt_chunk)
             session.commit()
@@ -77,7 +81,9 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         Delete a private chunk from the store.
         """
         with Session(self.get_sync_engine()) as session:
-            session.query(PrivateChunk).filter(PrivateChunk.content_hash == chunk_id).delete()
+            session.query(PrivateChunk).filter(
+                PrivateChunk.content_hash == chunk_id
+            ).delete()
             session.commit()
 
     def _setup_tables(self) -> None:
