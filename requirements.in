@@ -8,3 +8,5 @@ aiosqlite
 sqlite_vss
 numpy
 greenlet
+rank-bm25
+nltk
