@@ -25,10 +25,8 @@ def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
         private_store = PrivateStoreFactory.get_private_store(private_store_type)
 
         chunks = chunker.chunk_file(str(file_path))
-        chunk_ids = []
         for chunk in chunks:
-            chunk_id = private_store.insert(chunk.text)
-            chunk_ids.append(chunk_id)
+            private_store.insert(chunk.text)
 
         vectors = vectorizer.vectorize_batch(chunks)
 
