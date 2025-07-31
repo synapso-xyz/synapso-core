@@ -7,3 +7,4 @@ loguru
 aiosqlite
 sqlite_vss
 numpy
+greenlet

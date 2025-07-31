@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Iterator
 
 from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from .config_manager import GlobalConfig, get_config
 from .ingestor.document_ingestor import ingest_file
@@ -92,9 +92,9 @@ class CortexManager:
         self.meta_store: MetaStore = MetaStoreFactory.get_meta_store(
             self.config.meta_store.meta_db_type
         )
-        self.async_engine = self.meta_store.get_async_engine()
+        self.sync_engine = self.meta_store.get_sync_engine()
 
-    async def create_cortex(self, cortex_name: str | None, folder_path: str) -> Cortex:
+    def create_cortex(self, cortex_name: str | None, folder_path: str) -> str:
         _validate_cortex_path(folder_path)
 
         cortex_id = uuid.uuid4().hex
@@ -105,39 +105,38 @@ class CortexManager:
             last_indexed_at=None,  # We have not indexed the cortex yet.
         )
 
-        async with AsyncSession(self.async_engine) as session:
+        with Session(self.sync_engine) as session:
             session.add(cortex)
-            await session.commit()
+            session.commit()
+            return cortex.cortex_id
 
-        return cortex
-
-    async def get_cortex_by_id(self, cortex_id: str) -> Cortex:
+    def get_cortex_by_id(self, cortex_id: str) -> Cortex:
         stmt = select(Cortex).where(Cortex.cortex_id == cortex_id)
-        async with AsyncSession(self.async_engine) as session:
-            result = await session.execute(stmt)
+        with Session(self.sync_engine) as session:
+            result = session.execute(stmt)
             row = result.first()
             if row is None:
                 raise ValueError(f"Cortex with id {cortex_id} not found")
             return row[0]
 
-    async def initialize_cortex(self, cortex_id: str, index_now: bool = True) -> bool:
+    def initialize_cortex(self, cortex_id: str, index_now: bool = True) -> bool:
         # For now, let is just trigger the indexing.
-        cortex = await self.get_cortex_by_id(cortex_id)
+        cortex = self.get_cortex_by_id(cortex_id)
         cortex_path = cortex.path
         synapso_dir_path = Path(cortex_path) / ".synapso"
-        synapso_dir_path.mkdir()
+        synapso_dir_path.mkdir(exist_ok=True, parents=True)
 
         # Initialize the file_list.csv file
         _get_file_list_path(cortex_path)
 
         indexing_result = True
         if index_now:
-            indexing_result = await self.index_cortex(cortex_id=cortex_id)
+            indexing_result = self.index_cortex(cortex_id=cortex_id)
 
         return indexing_result
 
-    async def index_cortex(self, cortex_id: str) -> bool:
-        cortex = await self.get_cortex_by_id(cortex_id)
+    def index_cortex(self, cortex_id: str) -> bool:
+        cortex = self.get_cortex_by_id(cortex_id)
         cortex_path = cortex.path
 
         file_list_path = _get_file_list_path(directory_path=cortex_path)
@@ -156,10 +155,14 @@ class CortexManager:
                 writer.writerow([str(file_path), str(file_eligibility.name.lower())])
 
                 if file_eligibility == FileState.ELIGIBLE:
-                    success, error_context = await ingest_file(file_path)
+                    success, error_context = ingest_file(file_path)
                     if not success:
                         err_file.write(json.dumps(error_context) + "\n")
                         has_errors = True
+                else:
+                    print(
+                        f"Skipping {file_path} because it is not eligible ({file_eligibility.name.lower()})"
+                    )
 
             update_stmt = (
                 update(Cortex)
@@ -170,9 +173,9 @@ class CortexManager:
                     }
                 )
             )
-            async with AsyncSession(self.async_engine) as session:
-                await session.execute(update_stmt)
-                await session.commit()
+            with Session(self.sync_engine) as session:
+                session.execute(update_stmt)
+                session.commit()
 
             return not has_errors
 
