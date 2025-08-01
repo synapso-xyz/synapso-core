@@ -10,3 +10,4 @@ numpy
 greenlet
 rank-bm25
 nltk
+mlx-lm

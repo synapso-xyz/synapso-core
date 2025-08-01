@@ -12,8 +12,9 @@ class MetaSqliteAdapter(SqliteEngineMixin, MetaStore):
         if config.meta_store.meta_db_type != "sqlite":
             raise ValueError("Meta store type is not sqlite")
         self.meta_db_path = config.meta_store.meta_db_path
-        self.meta_db_path = str(Path(self.meta_db_path).expanduser().resolve())
         print(f"Meta DB path: {self.meta_db_path}")
+        self.meta_db_path = str(Path(self.meta_db_path).expanduser().resolve())
+        print(f"Meta DB path after expansion: {self.meta_db_path}")
         SqliteEngineMixin.__init__(self, self.meta_db_path)
         self._setup_tables()
 

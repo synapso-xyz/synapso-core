@@ -23,6 +23,13 @@ class Chunker(ABC):
         pass
 
     @abstractmethod
+    def chunk_text(self, text: str) -> List[Chunk]:
+        """
+        Chunk text into smaller pieces.
+        """
+        pass
+
+    @abstractmethod
     def is_file_supported(self, file_path: str) -> bool:
         """
         Check if a file is supported by the chunker.
