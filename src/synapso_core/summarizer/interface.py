@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
-
-from ..persistence.interfaces import Vector
+from typing import List, Tuple
 
 
 class Summarizer(ABC):
@@ -10,5 +8,5 @@ class Summarizer(ABC):
     """
 
     @abstractmethod
-    def summarize(self, results: List[Vector]) -> str:
+    def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:
         pass

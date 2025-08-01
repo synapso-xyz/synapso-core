@@ -65,10 +65,8 @@ class RerankerConfig(BaseConfig):
 
 
 class SummarizerConfig(BaseConfig):
-    available_types: ClassVar[list[str]] = ["textrank"]
-    summarizer_type: str = "textrank"
-    top_k: int = 5
-    min_score: float = 0.1
+    available_types: ClassVar[list[str]] = ["instruct"]
+    summarizer_type: str = "instruct"
 
     @field_validator("summarizer_type")
     def validate_type(cls, v):

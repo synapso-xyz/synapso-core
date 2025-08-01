@@ -1,3 +1,4 @@
+from .instruct_summarizer import InstructSummarizer
 from .interface import Summarizer
 
 
@@ -8,4 +9,7 @@ class SummarizerFactory:
 
     @staticmethod
     def create_summarizer(summarizer_type: str) -> Summarizer | None:
-        pass
+        available_summarizers = {
+            "instruct": InstructSummarizer,
+        }
+        return available_summarizers[summarizer_type]()

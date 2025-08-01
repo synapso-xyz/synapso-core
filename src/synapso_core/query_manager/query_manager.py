@@ -10,8 +10,7 @@ from ..persistence.factory import (
 from ..persistence.interfaces import VectorStore
 from ..reranker.factory import RerankerFactory
 from ..reranker.interface import Reranker
-from ..summarizer.factory import SummarizerFactory
-from ..summarizer.interface import Summarizer
+from ..summarizer.factory import Summarizer, SummarizerFactory
 from ..vectorizer.factory import VectorizerFactory
 from ..vectorizer.interface import Vectorizer
 from .query_config import QueryConfig
@@ -81,5 +80,6 @@ class QueryManager:
         reranked_results = self.reranker.rerank(results_with_text, query_vector)
         texts_with_scores = [(text, score) for _, text, score in reranked_results]
 
-        # Sumamrize this. But for now, return the search result.
-        return texts_with_scores
+        # Sumamrize this.
+        summary = self.summarizer.summarize(query, texts_with_scores)
+        return summary
