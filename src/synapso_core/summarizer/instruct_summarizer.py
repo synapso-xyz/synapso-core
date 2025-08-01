@@ -46,6 +46,8 @@ class InstructSummarizer:
         Answer:
         """
 
+        return prompt
+
     def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:
         prompt = self._prepare_prompt(question, results)
         response = generate(self.model, self.tokenizer, prompt, max_tokens=150)
