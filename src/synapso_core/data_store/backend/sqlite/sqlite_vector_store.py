@@ -8,8 +8,10 @@ import numpy as np
 import sqlite_vss
 
 from ....config_manager import get_config
-from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
-from ...interfaces.vector_store import Vector, VectorMetadata, VectorStore
+from ....models import Vector, VectorMetadata
+from ...interfaces import VectorStore
+from .sqlite_backend_identifier import SqliteBackendIdentifierMixin
+from .utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,7 @@ class SqliteVectorMetadata(VectorMetadata):
         )
 
 
-class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
+class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierMixin):
     def __init__(self):
         # Initialize with a placeholder path, will be set in metastore_setup
         config = get_config()
@@ -152,9 +154,16 @@ class VectorSqliteAdapter(SqliteEngineMixin, VectorStore):
                 return None
             embedding = result_metadata[0]
             content_hash = result_metadata[1]
-            metadata = result_metadata[2]
+            metadata_json = result_metadata[2]
 
             retrieved_vector = np.frombuffer(embedding, dtype=np.float32).tolist()
+
+            # Deserialize metadata if it exists
+            metadata = None
+            if metadata_json:
+                metadata_dict = json.loads(metadata_json)
+                metadata = SqliteVectorMetadata.from_dict(metadata_dict)
+
             return Vector(content_hash, retrieved_vector, metadata)
 
         finally:

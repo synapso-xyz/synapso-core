@@ -16,7 +16,7 @@ def test_load_valid_config():
     assert config.private_store.private_db_type == "sqlite"
     assert config.vector_store.vector_db_type == "sqlite"
     assert config.reranker.reranker_type == "bm25"
-    assert config.summarizer.summarizer_type == "textrank"
+    assert config.summarizer.summarizer_type == "instruct"
     assert config.vectorizer.vectorizer_type == "sentence_transformer"
     assert config.chunker.chunker_type == "chonkie_recursive"
     assert config.chunker.chunk_size == 500
@@ -40,7 +40,7 @@ def test_load_empty_config():
         assert config.private_store.private_db_type == "sqlite"
         assert config.vector_store.vector_db_type == "sqlite"
         assert config.reranker.reranker_type == "bm25"
-        assert config.summarizer.summarizer_type == "textrank"
+        assert config.summarizer.summarizer_type == "instruct"
         assert config.vectorizer.vectorizer_type == "sentence_transformer"
         assert config.chunker.chunker_type == "chonkie_recursive"
     finally:

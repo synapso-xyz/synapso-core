@@ -1,13 +1,23 @@
 from datetime import datetime
 
 from sqlalchemy import func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import String
 
-from .base import MetaStoreBase
+
+class MetaStoreBase(DeclarativeBase):
+    pass
 
 
-class Cortex(MetaStoreBase):
+class VectorStoreBase(DeclarativeBase):
+    pass
+
+
+class PrivateChunkStoreBase(DeclarativeBase):
+    pass
+
+
+class DBCortex(MetaStoreBase):
     __tablename__ = "cortex"
 
     cortex_id: Mapped[str] = mapped_column(primary_key=True)
@@ -20,3 +30,9 @@ class Cortex(MetaStoreBase):
         nullable=False,
     )
     last_indexed_at: Mapped[datetime] = mapped_column(nullable=True)
+
+
+class DBPrivateChunk(PrivateChunkStoreBase):
+    __tablename__ = "chunks"
+    content_hash: Mapped[str] = mapped_column(String, primary_key=True)
+    chunk_content: Mapped[str] = mapped_column(String, nullable=False)

@@ -4,16 +4,18 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from ....config_manager import get_config
-from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 from ....utils import get_content_hash
+from ...data_models import DBPrivateChunk, PrivateChunkStoreBase
 from ...interfaces import PrivateChunkStore
-from ...models.base import PrivateChunkStoreBase
-from ...models.private_store_models import PrivateChunk
+from .sqlite_backend_identifier import SqliteBackendIdentifierMixin
+from .utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 
 logger = logging.getLogger(__name__)
 
 
-class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
+class SqlitePrivateStore(
+    SqliteEngineMixin, PrivateChunkStore, SqliteBackendIdentifierMixin
+):
     def __init__(self):
         config = get_config()
         if config.private_store.private_db_type != "sqlite":
@@ -66,8 +68,8 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         """
         with Session(self.get_sync_engine()) as session:
             chunk = (
-                session.query(PrivateChunk)
-                .filter(PrivateChunk.content_hash == chunk_id)
+                session.query(DBPrivateChunk)
+                .filter(DBPrivateChunk.content_hash == chunk_id)
                 .first()
             )
             if chunk:
@@ -83,7 +85,7 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         if existing:
             logger.info(f"Chunk already exists: {content_hash}")
         else:
-            pvt_chunk = PrivateChunk(
+            pvt_chunk = DBPrivateChunk(
                 content_hash=content_hash, chunk_content=chunk_contents
             )
             with Session(self.get_sync_engine()) as session:
@@ -96,8 +98,8 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         Delete a private chunk from the store.
         """
         with Session(self.get_sync_engine()) as session:
-            session.query(PrivateChunk).filter(
-                PrivateChunk.content_hash == chunk_id
+            session.query(DBPrivateChunk).filter(
+                DBPrivateChunk.content_hash == chunk_id
             ).delete()
             session.commit()
 
@@ -106,7 +108,7 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
 
 
 if __name__ == "__main__":
-    adapter = ChunkSqliteAdapter()
+    adapter = SqlitePrivateStore()
     adapter.setup()
     print(adapter.get_sync_engine())
     print(adapter.get_async_engine())
