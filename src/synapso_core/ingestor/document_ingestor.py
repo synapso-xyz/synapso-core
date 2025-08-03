@@ -27,17 +27,17 @@ def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
         private_store_type = global_config.private_store.private_db_type
         private_store = DataStoreFactory.get_private_store(private_store_type)
 
-        logger.info(f"Ingesting {file_path}")
+        logger.info("Ingesting %s", file_path)
         chunks = chunker.chunk_file(str(file_path))
 
-        logger.info(f"Inserting {len(chunks)} chunks into private store")
+        logger.info("Inserting %d chunks into private store", len(chunks))
         for chunk in chunks:
             private_store.insert(chunk.text)
 
-        logger.info(f"Vectorizing {len(chunks)} chunks")
+        logger.info("Vectorizing %d chunks", len(chunks))
         vectors = vectorizer.vectorize_batch(chunks)
 
-        logger.info(f"Inserting {len(vectors)} vectors into vector store")
+        logger.info("Inserting %d vectors into vector store", len(vectors))
         for v in vectors:
             vector_store.insert(v)
 

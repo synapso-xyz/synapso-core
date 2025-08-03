@@ -22,7 +22,7 @@ class SqlitePrivateStore(
             raise ValueError("Chunk store type is not sqlite")
         self.chunk_db_path = config.private_store.private_db_path
         self.chunk_db_path = str(Path(self.chunk_db_path).expanduser().resolve())
-        logger.info(f"Chunk DB path: {self.chunk_db_path}")
+        logger.info("Chunk DB path: %s", self.chunk_db_path)
         SqliteEngineMixin.__init__(self, self.chunk_db_path)
 
     def close(self):
@@ -40,7 +40,7 @@ class SqlitePrivateStore(
                 logger.warning("No running event loop found")
                 asyncio.run(self._async_engine.dispose())
             except Exception as e:
-                logger.error(f"Error disposing async engine: {e}")
+                logger.error("Error disposing async engine: %s", e)
                 raise e
 
     def __enter__(self):
@@ -82,7 +82,7 @@ class SqlitePrivateStore(
         content_hash = get_content_hash(chunk_contents)
         existing = self.get_by_chunk_id(content_hash)
         if existing:
-            logger.info(f"Chunk already exists: {content_hash}")
+            logger.info("Chunk already exists: %s", content_hash)
         else:
             pvt_chunk = DBPrivateChunk(
                 content_hash=content_hash, chunk_content=chunk_contents

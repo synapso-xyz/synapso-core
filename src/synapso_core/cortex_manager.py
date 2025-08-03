@@ -139,7 +139,7 @@ class CortexManager:
                 writer.writerow([str(file_path), str(file_eligibility.name.lower())])
 
                 if file_eligibility == FileState.ELIGIBLE:
-                    logger.info(f"Ingesting {file_path}")
+                    logger.info("Ingesting %s", file_path)
                     success, error_context = ingest_file(file_path)
                     if not success:
                         err_file.write(json.dumps(error_context) + "\n")

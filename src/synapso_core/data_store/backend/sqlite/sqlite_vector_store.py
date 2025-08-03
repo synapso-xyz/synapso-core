@@ -79,7 +79,7 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
                 (embedding_bytes,),
             )
             if cursor.fetchone() is not None:
-                logger.info(f"Vector with content_hash '{vector_id}' already exists.")
+                logger.info("Vector with content_hash '%s' already exists.", vector_id)
                 return True
 
             # 1. Validate and prepare vector data
@@ -115,12 +115,12 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             # Commit the transaction
             conn.commit()
             logger.info(
-                f"Successfully inserted vector with content_hash '{vector_id}'."
+                "Successfully inserted vector with content_hash '%s'.", vector_id
             )
             return True
 
         except sqlite3.Error as e:
-            logger.error(f"Database error during insert: {e}")
+            logger.error("Database error during insert: %s", e)
             conn.rollback()  # Roll back the transaction on error
             return False
 
