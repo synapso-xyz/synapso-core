@@ -25,12 +25,14 @@ class AsyncDataStore(BaseDataStore):
         pass
 
 
-class SetupTearDownMixin:
+class SetupTearDownMixin(ABC):
+    @abstractmethod
     def setup(self) -> bool:
-        raise NotImplementedError("setup not implemented")
+        pass
 
+    @abstractmethod
     def teardown(self) -> bool:
-        raise NotImplementedError("teardown not implemented")
+        pass
 
 
 class MetaStore(SetupTearDownMixin, AsyncDataStore):
