@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, List
 
 from .config_manager import GlobalConfig, get_config
 from .data_store.data_models import DBCortex
@@ -99,6 +99,12 @@ class CortexManager:
 
     def get_cortex_by_id(self, cortex_id: str) -> DBCortex:
         return self.meta_store.get_cortex_by_id(cortex_id)
+
+    def get_cortex_by_name(self, cortex_name: str) -> DBCortex:
+        return self.meta_store.get_cortex_by_name(cortex_name)
+
+    def list_cortices(self) -> List[DBCortex]:
+        return self.meta_store.list_cortices()
 
     def index_cortex(
         self, cortex_id: str | None = None, cortex_name: str | None = None

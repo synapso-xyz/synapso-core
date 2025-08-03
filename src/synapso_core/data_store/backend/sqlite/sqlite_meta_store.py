@@ -21,7 +21,7 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         self.meta_db_path = str(Path(self.meta_db_path).expanduser().resolve())
         SqliteEngineMixin.__init__(self, self.meta_db_path)
 
-    def create_cortex(self, cortex_name: str, cortex_path: str) -> str:
+    def create_cortex(self, cortex_name: str, cortex_path: str) -> DBCortex:
         """
         Create a new cortex.
         """
@@ -34,18 +34,19 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         with Session(self.get_sync_engine()) as session:
             session.add(cortex)
             session.commit()
-            return cortex_id
+            session.refresh(cortex)
+            return cortex
 
-    def get_cortex_by_name(self, cortex_name: str) -> str:
+    def get_cortex_by_name(self, cortex_name: str) -> DBCortex | None:
         """
         Get a cortex by its name.
         """
         with Session(self.get_sync_engine()) as session:
             stmt = select(DBCortex).where(DBCortex.cortex_name == cortex_name)
             result = session.execute(stmt).scalar_one_or_none()
-            return result.cortex_id if result else None
+            return result
 
-    def get_cortex_by_id(self, cortex_id: str) -> str:
+    def get_cortex_by_id(self, cortex_id: str) -> DBCortex | None:
         """
         Get a cortex by its id.
         """
@@ -63,14 +64,15 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
             result = session.execute(stmt).scalars().all()
             return result
 
-    def update_cortex(self, updated_cortex: DBCortex) -> bool:
+    def update_cortex(self, updated_cortex: DBCortex) -> DBCortex | None:
         """
         Update a cortex.
         """
         with Session(self.get_sync_engine()) as session:
             session.add(updated_cortex)
             session.commit()
-            return True
+            session.refresh(updated_cortex)
+            return updated_cortex
 
     def setup(self) -> bool:
         MetaStoreBase.metadata.create_all(self.get_sync_engine())

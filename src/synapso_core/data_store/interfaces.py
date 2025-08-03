@@ -40,33 +40,33 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
 
     data_store_type: str = "meta_store"
 
-    def create_cortex(self, cortex_name: str) -> str:
+    def create_cortex(self, cortex_name: str) -> DBCortex:
         """
         Create a new cortex.
         """
         pass
 
-    def get_cortex_by_name(self, cortex_name: str) -> str:
+    def get_cortex_by_name(self, cortex_name: str) -> DBCortex | None:
         """
         Get a cortex by its name.
         """
         pass
 
-    def get_cortex_by_id(self, cortex_id: str) -> str:
+    def get_cortex_by_id(self, cortex_id: str) -> DBCortex | None:
         """
         Get a cortex by its id.
         """
         pass
 
-    def list_cortices(self) -> List[str]:
+    def list_cortices(self) -> List[DBCortex]:
         """
         List all cortices.
         """
         pass
 
-    def update_cortex(self, updated_cortex: DBCortex) -> bool:
+    def update_cortex(self, updated_cortex: DBCortex) -> DBCortex | None:
         """
-        Update a cortex.
+        Update a cortex. Returns the updated cortex.
         """
         pass
 
