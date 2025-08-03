@@ -1,12 +1,19 @@
+import os
 from typing import List, Tuple
 
 from mlx_lm import generate, load
 
+from ..synapso_logger import get_logger
+
 SUMMARIZER_MODEL = "mlx-community/Phi-4-mini-instruct-4bit"
+
+
+logger = get_logger(__name__)
 
 
 class InstructSummarizer:
     def __init__(self):
+        os.environ["TQDM_DISABLE"] = "1"
         self.model, self.tokenizer = load(SUMMARIZER_MODEL)
         self.tokenizer.add_eos_token("END_ANSWER")
 

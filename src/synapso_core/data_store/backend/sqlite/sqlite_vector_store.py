@@ -16,25 +16,6 @@ from .utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 logger = logging.getLogger(__name__)
 
 
-class SqliteVectorMetadata(VectorMetadata):
-    def __init__(self, content_hash: str, additional_data: Dict):
-        self.content_hash = content_hash
-        self.additional_data = additional_data
-
-    def to_dict(self) -> Dict:
-        return {
-            "content_hash": self.content_hash,
-            "additional_data": self.additional_data,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict) -> "VectorMetadata":
-        return cls(
-            content_hash=data.get("content_hash", ""),
-            additional_data=data.get("additional_data", {}),
-        )
-
-
 class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierMixin):
     def __init__(self):
         # Initialize with a placeholder path, will be set in metastore_setup
@@ -44,14 +25,16 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         self.vector_db_path = config.vector_store.vector_db_path
         self.vector_db_path = str(Path(self.vector_db_path).expanduser().resolve())
         SqliteEngineMixin.__init__(self, self.vector_db_path)
-        self.vectorstore_setup()
+        self._conn = None
 
     def _get_connection(self):
-        conn = sqlite3.connect(self.vector_db_path)
-        conn.enable_load_extension(True)
-        sqlite_vss.load(conn)
-        conn.enable_load_extension(False)
-        return conn
+        if self._conn is None:
+            conn = sqlite3.connect(self.vector_db_path)
+            conn.enable_load_extension(True)
+            sqlite_vss.load(conn)
+            conn.enable_load_extension(False)
+            self._conn = conn
+        return self._conn
 
     def __del__(self):
         """Clean up database connection when the adapter is deleted."""
@@ -59,7 +42,9 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
 
     def close(self):
         """Explicitly close the database connection."""
-        ...
+        if self._conn is not None:
+            self._conn.close()
+            self._conn = None
 
     def __enter__(self):
         """Context manager entry."""
@@ -69,7 +54,7 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         """Context manager exit."""
         self.close()
 
-    def vectorstore_setup(self) -> bool:
+    def setup(self) -> bool:
         create_sqlite_db_if_not_exists(self.vector_db_path)
         self._setup_tables()
         return True
@@ -122,8 +107,6 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             # Correctly get the last row id from the cursor
             vector_row_id = cursor.lastrowid
 
-            # Insert metadata, linking it via vector_row_id
-            # NOTE: Removed redundant storage of the embedding itself
             cursor.execute(
                 "INSERT INTO metadata(vector_row_id, embedding, content_hash, metadata) VALUES (?, ?, ?, ?)",
                 (vector_row_id, embedding_bytes, vector_id, metadata_json),
@@ -140,8 +123,6 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             logger.error(f"Database error during insert: {e}")
             conn.rollback()  # Roll back the transaction on error
             return False
-        finally:
-            conn.close()
 
     def get_by_id(self, vector_id: str) -> Vector | None:
         conn = self._get_connection()
@@ -162,12 +143,12 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             metadata = None
             if metadata_json:
                 metadata_dict = json.loads(metadata_json)
-                metadata = SqliteVectorMetadata.from_dict(metadata_dict)
+                metadata = VectorMetadata.from_dict(metadata_dict)
 
             return Vector(content_hash, retrieved_vector, metadata)
-
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.exception(e)
+            raise e
 
     def vector_search(
         self, query_vector: Vector, top_k: int = 5, filters: Dict | None = None
@@ -203,8 +184,6 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         except Exception as e:
             logger.exception(e)
             raise e
-        finally:
-            conn.close()
 
     def delete(self, vector_id: str) -> bool:
         raise NotImplementedError("Not implemented")
@@ -215,38 +194,36 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
     def count(self) -> int:
         raise NotImplementedError("Not implemented")
 
-    def vectorstore_teardown(self) -> bool:
+    def teardown(self) -> bool:
         raise NotImplementedError("Not implemented")
 
     def _setup_tables(self) -> None:
         conn = self._get_connection()
 
         # Try to load VSS extension, but handle cases where it's not available
-        try:
-            create_vector_table_stmt = """
-                CREATE VIRTUAL TABLE IF NOT EXISTS vss_vectors USING vss0(
-                    embedding(384)
-                )
-            """
-            try:
-                conn.execute(create_vector_table_stmt)
-            except Exception as e:
-                logger.exception(e)
-                raise e
 
-            create_metadata_table_stmt = """
-                CREATE TABLE IF NOT EXISTS metadata (
-                    vector_row_id INTEGER PRIMARY KEY,
-                    embedding BLOB NOT NULL,
-                    content_hash TEXT UNIQUE NOT NULL,
-                    metadata TEXT
-                )
-            """
-            try:
-                conn.execute(create_metadata_table_stmt)
-                conn.commit()
-            except Exception as e:
-                logger.exception(e)
-                raise e
-        finally:
-            conn.close()
+        create_vector_table_stmt = """
+            CREATE VIRTUAL TABLE IF NOT EXISTS vss_vectors USING vss0(
+                embedding(384)
+            )
+        """
+        try:
+            conn.execute(create_vector_table_stmt)
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
+        create_metadata_table_stmt = """
+            CREATE TABLE IF NOT EXISTS metadata (
+                vector_row_id INTEGER PRIMARY KEY,
+                embedding BLOB NOT NULL,
+                content_hash TEXT UNIQUE NOT NULL,
+                metadata TEXT
+            )
+        """
+        try:
+            conn.execute(create_metadata_table_stmt)
+            conn.commit()
+        except Exception as e:
+            logger.exception(e)
+            raise e

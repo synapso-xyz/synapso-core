@@ -1,14 +1,14 @@
 from typing import Any, List, Tuple
 
-from ..chunking.interface import Chunk
-from ..config_manager import GlobalConfig, get_config
-from ..data_store.factory import DataStoreFactory
-from ..data_store.interfaces import VectorStore
-from ..reranker.factory import RerankerFactory
-from ..reranker.interface import Reranker
-from ..summarizer.factory import Summarizer, SummarizerFactory
-from ..vectorizer.factory import VectorizerFactory
-from ..vectorizer.interface import Vectorizer
+from .chunking.interface import Chunk
+from .config_manager import GlobalConfig, get_config
+from .data_store.factory import DataStoreFactory
+from .data_store.interfaces import VectorStore
+from .reranker.factory import RerankerFactory
+from .reranker.interface import Reranker
+from .summarizer.factory import Summarizer, SummarizerFactory
+from .vectorizer.factory import VectorizerFactory
+from .vectorizer.interface import Vectorizer
 
 
 def _assure_not_none(obj: Any, name: str) -> Any:

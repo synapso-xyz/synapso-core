@@ -115,4 +115,4 @@ def get_config(config_file: str = CONFIG_FILE) -> GlobalConfig:
 
 if __name__ == "__main__":
     config = get_config()
-    print(config.model_dump_json(indent=2))
+    logger.info(config.model_dump_json(indent=2))

@@ -24,7 +24,6 @@ class SqlitePrivateStore(
         self.chunk_db_path = str(Path(self.chunk_db_path).expanduser().resolve())
         logger.info(f"Chunk DB path: {self.chunk_db_path}")
         SqliteEngineMixin.__init__(self, self.chunk_db_path)
-        self._setup_tables()
 
     def close(self):
         """Explicitly close the database connection."""
@@ -110,5 +109,5 @@ class SqlitePrivateStore(
 if __name__ == "__main__":
     adapter = SqlitePrivateStore()
     adapter.setup()
-    print(adapter.get_sync_engine())
-    print(adapter.get_async_engine())
+    logger.info(adapter.get_sync_engine())
+    logger.info(adapter.get_async_engine())

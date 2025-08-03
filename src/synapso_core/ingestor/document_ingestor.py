@@ -5,7 +5,10 @@ from typing import Dict, Tuple
 from ..chunking.factory import ChunkerFactory
 from ..config_manager import get_config
 from ..data_store.factory import DataStoreFactory
+from ..synapso_logger import get_logger
 from ..vectorizer.factory import VectorizerFactory
+
+logger = get_logger(__name__)
 
 
 def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
@@ -19,17 +22,22 @@ def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
         vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
 
         vector_store_type = global_config.vector_store.vector_db_type
-        vector_store = DataStoreFactory.create_vector_store(vector_store_type)
+        vector_store = DataStoreFactory.get_vector_store(vector_store_type)
 
         private_store_type = global_config.private_store.private_db_type
-        private_store = DataStoreFactory.create_private_store(private_store_type)
+        private_store = DataStoreFactory.get_private_store(private_store_type)
 
+        logger.info(f"Ingesting {file_path}")
         chunks = chunker.chunk_file(str(file_path))
+
+        logger.info(f"Inserting {len(chunks)} chunks into private store")
         for chunk in chunks:
             private_store.insert(chunk.text)
 
+        logger.info(f"Vectorizing {len(chunks)} chunks")
         vectors = vectorizer.vectorize_batch(chunks)
 
+        logger.info(f"Inserting {len(vectors)} vectors into vector store")
         for v in vectors:
             vector_store.insert(v)
 

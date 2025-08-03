@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
-from ..data_store.models import Vector
+from ..models import Vector
 
 
 class Reranker(ABC):

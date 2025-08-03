@@ -12,8 +12,11 @@ from .data_store.data_models import DBCortex
 from .data_store.factory import DataStoreFactory
 from .data_store.interfaces import MetaStore
 from .ingestor.document_ingestor import ingest_file
+from .synapso_logger import get_logger
 
 SUPPORTED_FORMATS = [".md", ".markdown"]
+
+logger = get_logger(__name__)
 
 
 class FileState(Enum):
@@ -130,14 +133,16 @@ class CortexManager:
                 writer.writerow([str(file_path), str(file_eligibility.name.lower())])
 
                 if file_eligibility == FileState.ELIGIBLE:
+                    logger.info(f"Ingesting {file_path}")
                     success, error_context = ingest_file(file_path)
                     if not success:
                         err_file.write(json.dumps(error_context) + "\n")
                         has_errors = True
                 else:
-                    print(
-                        f"Skipping {file_path} because it is not eligible ({file_eligibility.name.lower()})"
-                    )
+                    # logger.info(
+                    #     f"Skipping {file_path} because it is not eligible ({file_eligibility.name.lower()})"
+                    # )
+                    continue
 
         cortex.last_indexed_at = datetime.now(timezone.utc)
         self.meta_store.update_cortex(cortex)
