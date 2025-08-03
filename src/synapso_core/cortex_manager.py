@@ -115,6 +115,12 @@ class CortexManager:
             cortex = self.get_cortex_by_id(cortex_id)
         else:
             cortex = self.get_cortex_by_name(cortex_name)
+
+        if cortex is None:
+            raise ValueError(
+                f"Cortex with id {cortex_id} or name {cortex_name} not found"
+            )
+
         # For now, let is just trigger the indexing.
         cortex_path = cortex.path
         synapso_dir_path = Path(cortex_path) / ".synapso"
