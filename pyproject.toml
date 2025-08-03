@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapso_core"
-version = "0.1.5"
+version = "0.2.0"
 description = "Synapso Core"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -36,16 +36,12 @@ packages = [
     "synapso_core.chunking.implementations.md",
     "synapso_core.cortex_watcher",
     "synapso_core.ingestor",
-    "synapso_core.persistence",
-    "synapso_core.persistence.implementations",
-    "synapso_core.persistence.implementations.meta_store",
-    "synapso_core.persistence.implementations.vector_store",
-    "synapso_core.persistence.interfaces",
-    "synapso_core.persistence.models",
-    "synapso_core.query_manager",
     "synapso_core.reranker",
     "synapso_core.summarizer",
     "synapso_core.vectorizer",
-    "synapso_core.vectorizer.implementations"
+    "synapso_core.vectorizer.implementations",
+    "synapso_core.data_store",
+    "synapso_core.data_store.backend",
+    "synapso_core.data_store.backend.sqlite"
 ]
 package-dir = {"" = "src"}

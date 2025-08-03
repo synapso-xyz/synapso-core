@@ -4,25 +4,26 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from ....config_manager import get_config
-from ....sqlite_utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 from ....utils import get_content_hash
+from ...data_models import DBPrivateChunk, PrivateChunkStoreBase
 from ...interfaces import PrivateChunkStore
-from ...models.base import PrivateChunkStoreBase
-from ...models.private_store_models import PrivateChunk
+from .sqlite_backend_identifier import SqliteBackendIdentifierMixin
+from .utils import SqliteEngineMixin, create_sqlite_db_if_not_exists
 
 logger = logging.getLogger(__name__)
 
 
-class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
+class SqlitePrivateStore(
+    SqliteEngineMixin, PrivateChunkStore, SqliteBackendIdentifierMixin
+):
     def __init__(self):
         config = get_config()
         if config.private_store.private_db_type != "sqlite":
             raise ValueError("Chunk store type is not sqlite")
         self.chunk_db_path = config.private_store.private_db_path
         self.chunk_db_path = str(Path(self.chunk_db_path).expanduser().resolve())
-        logger.info(f"Chunk DB path: {self.chunk_db_path}")
+        logger.info("Chunk DB path: %s", self.chunk_db_path)
         SqliteEngineMixin.__init__(self, self.chunk_db_path)
-        self._setup_tables()
 
     def close(self):
         """Explicitly close the database connection."""
@@ -39,7 +40,7 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
                 logger.warning("No running event loop found")
                 asyncio.run(self._async_engine.dispose())
             except Exception as e:
-                logger.error(f"Error disposing async engine: {e}")
+                logger.error("Error disposing async engine: %s", e)
                 raise e
 
     def __enter__(self):
@@ -66,8 +67,8 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         """
         with Session(self.get_sync_engine()) as session:
             chunk = (
-                session.query(PrivateChunk)
-                .filter(PrivateChunk.content_hash == chunk_id)
+                session.query(DBPrivateChunk)
+                .filter(DBPrivateChunk.content_hash == chunk_id)
                 .first()
             )
             if chunk:
@@ -81,9 +82,9 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         content_hash = get_content_hash(chunk_contents)
         existing = self.get_by_chunk_id(content_hash)
         if existing:
-            logger.info(f"Chunk already exists: {content_hash}")
+            logger.info("Chunk already exists: %s", content_hash)
         else:
-            pvt_chunk = PrivateChunk(
+            pvt_chunk = DBPrivateChunk(
                 content_hash=content_hash, chunk_content=chunk_contents
             )
             with Session(self.get_sync_engine()) as session:
@@ -96,8 +97,8 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
         Delete a private chunk from the store.
         """
         with Session(self.get_sync_engine()) as session:
-            session.query(PrivateChunk).filter(
-                PrivateChunk.content_hash == chunk_id
+            session.query(DBPrivateChunk).filter(
+                DBPrivateChunk.content_hash == chunk_id
             ).delete()
             session.commit()
 
@@ -106,7 +107,7 @@ class ChunkSqliteAdapter(SqliteEngineMixin, PrivateChunkStore):
 
 
 if __name__ == "__main__":
-    adapter = ChunkSqliteAdapter()
+    adapter = SqlitePrivateStore()
     adapter.setup()
-    print(adapter.get_sync_engine())
-    print(adapter.get_async_engine())
+    logger.info(adapter.get_sync_engine())
+    logger.info(adapter.get_async_engine())

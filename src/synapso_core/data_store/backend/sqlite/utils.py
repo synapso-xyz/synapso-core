@@ -1,28 +1,28 @@
-import os
+import logging
 import sqlite3
+from pathlib import Path
 
 from sqlalchemy import Engine, engine
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 def create_sqlite_db_if_not_exists(db_path):
     """Create SQLite database file if it doesn't exist."""
     try:
         # Ensure the directory exists
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
-        if not os.path.exists(db_path):
+        db_path = Path(db_path)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if not db_path.exists():
             conn = sqlite3.connect(db_path)
             conn.close()
-            logger.info(f"Database created at: {db_path}")
+            logger.info("Database created at: %s", db_path)
         else:
-            logger.debug(f"Database already exists at: {db_path}")
+            logger.debug("Database already exists at: %s", db_path)
     except Exception as e:
-        logger.error(f"Failed to create database at {db_path}: {e}")
+        logger.error("Failed to create database at %s: %s", db_path, e)
         raise
 
 

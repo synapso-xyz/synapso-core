@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from ..chunking.interface import Chunk
-from ..persistence.interfaces import Vector
+from ..models import Vector
 
 
 class Vectorizer(ABC):

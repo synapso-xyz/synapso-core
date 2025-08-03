@@ -7,7 +7,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from rank_bm25 import BM25Okapi
 
-from ..persistence.interfaces import Vector
+from ..models import Vector
 from .interface import Reranker
 
 

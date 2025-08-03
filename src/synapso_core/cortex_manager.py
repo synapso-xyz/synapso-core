@@ -1,23 +1,22 @@
 import csv
 import json
 import os
-import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Iterator
-
-from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from typing import Iterator, List
 
 from .config_manager import GlobalConfig, get_config
+from .data_store.data_models import DBCortex
+from .data_store.factory import DataStoreFactory
+from .data_store.interfaces import MetaStore
 from .ingestor.document_ingestor import ingest_file
-from .persistence.factory import MetaStoreFactory
-from .persistence.interfaces.meta_store import MetaStore
-from .persistence.models import Cortex
+from .synapso_logger import get_logger
 
 SUPPORTED_FORMATS = [".md", ".markdown"]
+
+logger = get_logger(__name__)
 
 
 class FileState(Enum):
@@ -89,55 +88,46 @@ def _validate_cortex_path(cortex_path: str) -> None:
 class CortexManager:
     def __init__(self) -> None:
         self.config: GlobalConfig = get_config()
-        self.meta_store: MetaStore = MetaStoreFactory.get_meta_store(
+        self.meta_store: MetaStore = DataStoreFactory.get_meta_store(
             self.config.meta_store.meta_db_type
         )
         self.sync_engine = self.meta_store.get_sync_engine()
 
     def create_cortex(self, cortex_name: str | None, folder_path: str) -> str:
         _validate_cortex_path(folder_path)
+        return self.meta_store.create_cortex(cortex_name, folder_path)
 
-        cortex_id = uuid.uuid4().hex
-        cortex = Cortex(
-            cortex_id=cortex_id,
-            cortex_name=cortex_name,
-            path=folder_path,
-            last_indexed_at=None,  # We have not indexed the cortex yet.
-        )
+    def get_cortex_by_id(self, cortex_id: str) -> DBCortex:
+        return self.meta_store.get_cortex_by_id(cortex_id)
 
-        with Session(self.sync_engine) as session:
-            session.add(cortex)
-            session.commit()
-            return cortex.cortex_id
+    def get_cortex_by_name(self, cortex_name: str) -> DBCortex:
+        return self.meta_store.get_cortex_by_name(cortex_name)
 
-    def get_cortex_by_id(self, cortex_id: str) -> Cortex:
-        stmt = select(Cortex).where(Cortex.cortex_id == cortex_id)
-        with Session(self.sync_engine) as session:
-            result = session.execute(stmt)
-            row = result.first()
-            if row is None:
-                raise ValueError(f"Cortex with id {cortex_id} not found")
-            return row[0]
+    def list_cortices(self) -> List[DBCortex]:
+        return self.meta_store.list_cortices()
 
-    def initialize_cortex(self, cortex_id: str, index_now: bool = True) -> bool:
+    def index_cortex(
+        self, cortex_id: str | None = None, cortex_name: str | None = None
+    ) -> bool:
+        if cortex_id is None and cortex_name is None:
+            raise ValueError("Either cortex_id or cortex_name must be provided")
+        if cortex_id:
+            cortex = self.get_cortex_by_id(cortex_id)
+        else:
+            cortex = self.get_cortex_by_name(cortex_name)
+
+        if cortex is None:
+            raise ValueError(
+                f"Cortex with id {cortex_id} or name {cortex_name} not found"
+            )
+
         # For now, let is just trigger the indexing.
-        cortex = self.get_cortex_by_id(cortex_id)
         cortex_path = cortex.path
         synapso_dir_path = Path(cortex_path) / ".synapso"
         synapso_dir_path.mkdir(exist_ok=True, parents=True)
 
         # Initialize the file_list.csv file
         _get_file_list_path(cortex_path)
-
-        indexing_result = True
-        if index_now:
-            indexing_result = self.index_cortex(cortex_id=cortex_id)
-
-        return indexing_result
-
-    def index_cortex(self, cortex_id: str) -> bool:
-        cortex = self.get_cortex_by_id(cortex_id)
-        cortex_path = cortex.path
 
         file_list_path = _get_file_list_path(directory_path=cortex_path)
         ingestion_errors_path = _get_ingestion_errors_path(directory_path=cortex_path)
@@ -155,29 +145,21 @@ class CortexManager:
                 writer.writerow([str(file_path), str(file_eligibility.name.lower())])
 
                 if file_eligibility == FileState.ELIGIBLE:
+                    logger.info("Ingesting %s", file_path)
                     success, error_context = ingest_file(file_path)
                     if not success:
                         err_file.write(json.dumps(error_context) + "\n")
                         has_errors = True
                 else:
-                    print(
-                        f"Skipping {file_path} because it is not eligible ({file_eligibility.name.lower()})"
-                    )
+                    # logger.info(
+                    #     f"Skipping {file_path} because it is not eligible ({file_eligibility.name.lower()})"
+                    # )
+                    continue
 
-            update_stmt = (
-                update(Cortex)
-                .where(Cortex.cortex_id == cortex_id)
-                .values(
-                    {
-                        Cortex.updated_at: datetime.now(timezone.utc),
-                    }
-                )
-            )
-            with Session(self.sync_engine) as session:
-                session.execute(update_stmt)
-                session.commit()
+        cortex.last_indexed_at = datetime.now(timezone.utc)
+        self.meta_store.update_cortex(cortex)
 
-            return not has_errors
+        return not has_errors
 
     async def delete_cortex(self, cortex_id: str) -> bool:
         raise NotImplementedError

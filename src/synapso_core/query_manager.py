@@ -1,19 +1,14 @@
 from typing import Any, List, Tuple
 
-from ..chunking.interface import Chunk
-from ..config_manager import GlobalConfig, get_config
-from ..persistence.factory import (
-    MetaStoreFactory,
-    PrivateStoreFactory,
-    VectorStoreFactory,
-)
-from ..persistence.interfaces import VectorStore
-from ..reranker.factory import RerankerFactory
-from ..reranker.interface import Reranker
-from ..summarizer.factory import Summarizer, SummarizerFactory
-from ..vectorizer.factory import VectorizerFactory
-from ..vectorizer.interface import Vectorizer
-from .query_config import QueryConfig
+from .chunking.interface import Chunk
+from .config_manager import GlobalConfig, get_config
+from .data_store.factory import DataStoreFactory
+from .data_store.interfaces import VectorStore
+from .reranker.factory import RerankerFactory
+from .reranker.interface import Reranker
+from .summarizer.factory import Summarizer, SummarizerFactory
+from .vectorizer.factory import VectorizerFactory
+from .vectorizer.interface import Vectorizer
 
 
 def _assure_not_none(obj: Any, name: str) -> Any:
@@ -23,8 +18,7 @@ def _assure_not_none(obj: Any, name: str) -> Any:
 
 
 class QueryManager:
-    def __init__(self, query_config: QueryConfig):
-        self.query_config = query_config
+    def __init__(self):
         global_config: GlobalConfig = get_config()
 
         try:
@@ -44,14 +38,14 @@ class QueryManager:
                 ),
                 "summarizer",
             )
-            self.meta_store = MetaStoreFactory.get_meta_store(
+            self.meta_store = DataStoreFactory.get_meta_store(
                 global_config.meta_store.meta_db_type
             )
-            self.private_store = PrivateStoreFactory.get_private_store(
+            self.private_store = DataStoreFactory.get_private_store(
                 global_config.private_store.private_db_type
             )
             self.vector_store: VectorStore = _assure_not_none(
-                VectorStoreFactory.get_vector_store(
+                DataStoreFactory.get_vector_store(
                     global_config.vector_store.vector_db_type
                 ),
                 "vector store",

@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 
 from src.synapso_core.chunking.interface import Chunk
+from src.synapso_core.utils import get_content_hash
 from src.synapso_core.vectorizer.implementations.sentence_transformer_embeddings import (
     SentenceTransformerVectorizer,
-    _content_hash,
 )
 from src.synapso_core.vectorizer.interface import Vector
 
@@ -21,7 +21,7 @@ def test_vectorize_single_chunk(vectorizer):
     assert isinstance(v.vector, list)
     assert all(isinstance(x, float) for x in v.vector)
     assert isinstance(v.vector_id, str)
-    assert v.metadata.to_dict()["content_hash"] == _content_hash(chunk)
+    assert v.metadata.to_dict()["content_hash"] == get_content_hash(chunk.text)
     assert len(v.vector) > 0
 
 
@@ -31,7 +31,7 @@ def test_vectorize_multiple_chunks(vectorizer):
     assert len(vectors) == 2
     for v, c in zip(vectors, chunks):
         assert isinstance(v.vector, list)
-        assert v.metadata.to_dict()["content_hash"] == _content_hash(c)
+        assert v.metadata.to_dict()["content_hash"] == get_content_hash(c.text)
 
 
 def test_vectorize_empty_text(vectorizer):
@@ -46,7 +46,7 @@ def test_vectorize_with_metadata(vectorizer):
     chunk = Chunk(text="Test text", metadata={"foo": "bar"})
     v = vectorizer.vectorize(chunk)
     meta = v.metadata.to_dict()
-    assert meta["foo"] == "bar"
+    assert meta["additional_data"]["foo"] == "bar"
     assert "content_hash" in meta
 
 
@@ -61,7 +61,7 @@ def test_vector_shape_and_type(vectorizer):
 def test_content_hash_consistency():
     chunk1 = Chunk(text="Same text")
     chunk2 = Chunk(text="Same text")
-    assert _content_hash(chunk1) == _content_hash(chunk2)
+    assert get_content_hash(chunk1.text) == get_content_hash(chunk2.text)
 
 
 def test_unicode_text(vectorizer):
