@@ -78,5 +78,10 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         MetaStoreBase.metadata.create_all(self.get_sync_engine())
         return True
 
+    def close(self):
+        """Explicitly close the database connections."""
+        super().close()
+
     def teardown(self) -> bool:
+        self.close()
         return True
