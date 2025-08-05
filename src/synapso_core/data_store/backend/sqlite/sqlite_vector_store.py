@@ -36,15 +36,12 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             self._conn = conn
         return self._conn
 
-    def __del__(self):
-        """Clean up database connection when the adapter is deleted."""
-        self.close()
-
     def close(self):
         """Explicitly close the database connection."""
         if self._conn is not None:
             self._conn.close()
             self._conn = None
+        super().close()
 
     def __enter__(self):
         """Context manager entry."""

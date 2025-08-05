@@ -5,15 +5,12 @@ import numpy as np
 import pytest
 import sqlite_vss
 
-from synapso_core.data_store.backend.sqlite.sqlite_vector_store import (
-    SqliteVectorMetadata,
-    SqliteVectorStore,
-)
+from synapso_core.data_store.backend.sqlite.sqlite_vector_store import SqliteVectorStore
 from synapso_core.data_store.backend.sqlite.utils import create_sqlite_db_if_not_exists
-from synapso_core.models import Vector
+from synapso_core.models import Vector, VectorMetadata
 
 
-class TestVectorMetadata(SqliteVectorMetadata):
+class TestVectorMetadata(VectorMetadata):
     """Test implementation of VectorMetadata for testing purposes."""
 
     def __init__(self, content_hash: str, additional_data: dict | None = None):
@@ -96,6 +93,20 @@ class TestSqliteVectorStore:
         ]  # 384 dimensions
         return Vector("test_vector_2", vector_data, None)
 
+    @pytest.fixture
+    def vector_store_adapter(self, temp_db_config):
+        """Create a SqliteVectorStore adapter with proper cleanup."""
+        mock_config, db_path = temp_db_config
+
+        with patch(
+            "synapso_core.data_store.backend.sqlite.sqlite_vector_store.get_config",
+            return_value=mock_config,
+        ):
+            adapter = SqliteVectorStore()
+            adapter.setup()
+            yield adapter
+            adapter.close()
+
     def test_vectorstore_setup_creates_database(self, temp_db_config):
         """Test that vectorstore_setup creates the actual database file."""
         mock_config, db_path = temp_db_config
@@ -108,10 +119,12 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Verify the database file was created
             assert db_path.exists()
+
+            adapter.close()
 
     def test_vectorstore_setup_creates_tables(self, temp_db_config):
         """Test that vectorstore_setup creates the necessary tables."""
@@ -122,7 +135,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Check if the vectors and metadata tables exist
             with sqlite3.connect(db_path) as conn:
@@ -141,6 +154,8 @@ class TestSqliteVectorStore:
                 )
                 tables = [row[0] for row in cursor.fetchall()]
                 assert "metadata" in tables
+
+            adapter.close()
 
     def test_vectorstore_setup_wrong_db_type(self):
         """Test that vectorstore_setup raises error for wrong database type."""
@@ -175,7 +190,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Insert the vector
             result = adapter.insert(sample_vector)
@@ -192,6 +207,8 @@ class TestSqliteVectorStore:
                 assert result is not None
                 assert result[0] == sample_vector.vector_id
 
+            adapter.close()
+
     def test_insert_vector_without_metadata(
         self, temp_db_config, sample_vector_no_metadata
     ):
@@ -203,7 +220,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Insert vector without metadata
             assert adapter.insert(sample_vector_no_metadata) is True
@@ -219,6 +236,8 @@ class TestSqliteVectorStore:
                 assert result is not None
                 assert result[0] == sample_vector_no_metadata.vector_id
 
+            adapter.close()
+
     def test_insert_duplicate_vector(self, temp_db_config, sample_vector):
         """Test inserting a duplicate vector raises an error."""
         mock_config, db_path = temp_db_config
@@ -228,7 +247,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Insert the vector first time
             assert adapter.insert(sample_vector) is True
@@ -248,6 +267,8 @@ class TestSqliteVectorStore:
                 assert result is not None
                 assert result[0] == sample_vector.vector_id
 
+            adapter.close()
+
     def test_get_by_id_existing_vector(self, temp_db_config, sample_vector):
         """Test retrieving an existing vector by ID."""
         mock_config, db_path = temp_db_config
@@ -257,7 +278,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Insert a vector
             adapter.insert(sample_vector)
@@ -272,6 +293,8 @@ class TestSqliteVectorStore:
                 == sample_vector.metadata.content_hash
             )
 
+            adapter.close()
+
     def test_get_by_id_nonexistent_vector(self, temp_db_config):
         """Test retrieving a non-existent vector by ID."""
         mock_config, db_path = temp_db_config
@@ -281,11 +304,13 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Try to retrieve a non-existent vector
             result = adapter.get_by_id("nonexistent_vector_id")
             assert result is None
+
+            adapter.close()
 
     def test_vector_search_basic(self, temp_db_config, sample_vector):
         """Test basic vector search functionality."""
@@ -308,10 +333,12 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             with pytest.raises(NotImplementedError, match="Not implemented"):
                 adapter.delete("test_id")
+
+            adapter.close()
 
     def test_update_metadata_not_implemented(self, temp_db_config):
         """Test that update_metadata method raises NotImplementedError."""
@@ -322,11 +349,13 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             metadata = TestVectorMetadata("new_hash", {"updated": True})
             with pytest.raises(NotImplementedError, match="Not implemented"):
                 adapter.update_metadata("test_id", metadata)
+
+            adapter.close()
 
     def test_count_not_implemented(self, temp_db_config):
         """Test that count method raises NotImplementedError."""
@@ -337,10 +366,12 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             with pytest.raises(NotImplementedError, match="Not implemented"):
                 adapter.count()
+
+            adapter.close()
 
     def test_vectorstore_teardown_not_implemented(self, temp_db_config):
         """Test that vectorstore_teardown method raises NotImplementedError."""
@@ -351,10 +382,12 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             with pytest.raises(NotImplementedError, match="Not implemented"):
-                adapter.vectorstore_teardown()
+                adapter.teardown()
+
+            adapter.close()
 
     def test_database_persistence(self, temp_db_config, sample_vector):
         """Test that data persists between adapter instances."""
@@ -366,17 +399,20 @@ class TestSqliteVectorStore:
         ):
             # Create first adapter and insert data
             adapter1 = SqliteVectorStore()
-            adapter1.vectorstore_setup()
+            adapter1.setup()
             adapter1.insert(sample_vector)
 
             # Create second adapter and verify data persists
             adapter2 = SqliteVectorStore()
-            adapter2.vectorstore_setup()
+            adapter2.setup()
 
             retrieved_vector = adapter2.get_by_id(sample_vector.vector_id)
             assert retrieved_vector is not None
             assert retrieved_vector.vector_id == sample_vector.vector_id
             assert np.allclose(retrieved_vector.vector, sample_vector.vector, rtol=1e-5)
+
+            adapter1.close()
+            adapter2.close()
 
     def test_multiple_setup_calls(self, temp_db_config):
         """Test that multiple setup calls don't cause issues."""
@@ -388,12 +424,13 @@ class TestSqliteVectorStore:
         ):
             adapter = SqliteVectorStore()
             # Call setup multiple times
-            assert adapter.vectorstore_setup() is True
-            assert adapter.vectorstore_setup() is True
-            assert adapter.vectorstore_setup() is True
+            assert adapter.setup() is True
+            assert adapter.setup() is True
 
             # Verify database still exists and is functional
             assert db_path.exists()
+
+            adapter.close()
 
     def test_context_manager(self, temp_db_config):
         """Test that the adapter works as a context manager."""
@@ -404,7 +441,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             with SqliteVectorStore() as adapter:
-                adapter.vectorstore_setup()
+                adapter.setup()
                 assert adapter is not None
 
     def test_sqlite_vss_extension_loading(self, temp_db_config):
@@ -416,7 +453,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Check if VSS extension is loaded by querying version
             # Note: This might fail on systems where SQLite extensions are not enabled
@@ -448,7 +485,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Create a vector with exactly 384 dimensions (as specified in the schema)
             vector_data = [0.1] * 384
@@ -473,7 +510,7 @@ class TestSqliteVectorStore:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Create metadata with various data types
             additional_data = {
@@ -485,7 +522,9 @@ class TestSqliteVectorStore:
                 "list": [1, 2, 3],
                 "dict": {"nested": "value"},
             }
-            metadata = TestVectorMetadata("test_hash_123", additional_data)
+            metadata = VectorMetadata(
+                content_hash="test_hash_123", additional_data=additional_data
+            )
 
             # Create and insert vector
             vector_data = [0.1, 0.2, 0.3] * 128  # 384 dimensions
@@ -530,7 +569,7 @@ class TestSqliteVectorStoreIntegration:
         ):
             # Setup
             adapter = SqliteVectorStore()
-            assert adapter.vectorstore_setup() is True
+            assert adapter.setup() is True
 
             # Verify database exists
             assert temp_db_path.exists()
@@ -551,6 +590,8 @@ class TestSqliteVectorStoreIntegration:
             assert retrieved_vector.vector_id == vector.vector_id
             assert np.allclose(retrieved_vector.vector, vector.vector, rtol=1e-5)
             assert retrieved_vector.metadata.content_hash == metadata.content_hash
+
+            adapter.close()
 
             # Skip vector search test since it requires sqlite_vss extension
             # query_vector = Vector("query", vector_data, None)
@@ -575,14 +616,15 @@ class TestSqliteVectorStoreIntegration:
             return_value=mock_config,
         ):
             adapter = SqliteVectorStore()
-            adapter.vectorstore_setup()
+            adapter.setup()
 
             # Insert multiple vectors
             vectors = []
             for i in range(5):
                 vector_data = [float(j + i * 0.1) for j in range(384)]
-                metadata = TestVectorMetadata(
-                    f"hash_{i}", {"index": i, "batch": "test"}
+                metadata = VectorMetadata(
+                    content_hash=f"hash_{i}",
+                    additional_data={"index": i, "batch": "test"},
                 )
                 vector = Vector(f"vector_{i}", vector_data, metadata)
                 adapter.insert(vector)
@@ -599,3 +641,5 @@ class TestSqliteVectorStoreIntegration:
             # for i, vector in enumerate(vectors):
             #     query_vector = Vector(f"query_{i}", vector.vector, None)
             #     results = adapter.vector_search(query_vector, top_k=3)
+
+            adapter.close()

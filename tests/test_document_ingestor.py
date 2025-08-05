@@ -46,8 +46,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -61,10 +61,10 @@ class TestIngestFile:
         mock_vectorizer_factory.create_vectorizer.assert_called_once_with(
             "test_vectorizer"
         )
-        mock_data_store_factory.create_vector_store.assert_called_once_with(
+        mock_data_store_factory.get_vector_store.assert_called_once_with(
             "test_vector_store"
         )
-        mock_data_store_factory.create_private_store.assert_called_once_with(
+        mock_data_store_factory.get_private_store.assert_called_once_with(
             "test_private_store"
         )
 
@@ -111,8 +111,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/empty.md")
@@ -156,8 +156,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -204,8 +204,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -251,8 +251,8 @@ class TestIngestFile:
         mock_vector_store = MagicMock()
         mock_vector_store.insert.side_effect = Exception("Vector store failed")
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -320,8 +320,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -376,8 +376,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test with string path
         string_path = "/test/file.md"
@@ -427,8 +427,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -480,8 +480,8 @@ class TestIngestFile:
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/large_file.md")
@@ -542,8 +542,8 @@ class TestIngestFile:
         # Make insert fail on the second call
         mock_vector_store.insert.side_effect = [None, Exception("Insert failed"), None]
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         file_path = Path("/test/file.md")
@@ -643,8 +643,8 @@ More content in a subsection.
 
         mock_vector_store = MagicMock()
         mock_private_store = MagicMock()
-        mock_data_store_factory.create_vector_store.return_value = mock_vector_store
-        mock_data_store_factory.create_private_store.return_value = mock_private_store
+        mock_data_store_factory.get_vector_store.return_value = mock_vector_store
+        mock_data_store_factory.get_private_store.return_value = mock_private_store
 
         # Test
         success, error_context = ingest_file(sample_markdown_file)

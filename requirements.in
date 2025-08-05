@@ -11,3 +11,5 @@ greenlet
 rank-bm25
 nltk
 mlx-lm
+markdown
+beautifulsoup4

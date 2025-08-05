@@ -59,6 +59,20 @@ class TestSqliteMetaStore:
 
         return mock_config, db_path
 
+    @pytest.fixture
+    def sqlite_adapter(self, temp_db_config):
+        """Create a SqliteMetaStore adapter with proper cleanup."""
+        mock_config, db_path = temp_db_config
+
+        with patch(
+            "synapso_core.data_store.backend.sqlite.sqlite_meta_store.get_config",
+            return_value=mock_config,
+        ):
+            adapter = SqliteMetaStore()
+            adapter.setup()
+            yield adapter
+            adapter.close()
+
     def test_setup_creates_database(self, temp_db_config):
         """Test that setup creates the actual database file."""
         mock_config, db_path = temp_db_config
@@ -78,6 +92,9 @@ class TestSqliteMetaStore:
 
             # Verify the database file was created
             assert db_path.exists()
+
+            # Clean up
+            adapter.close()
 
     def test_setup_creates_tables(self, temp_db_config):
         """Test that setup creates the necessary tables."""
@@ -99,6 +116,9 @@ class TestSqliteMetaStore:
                 )
                 table_names = [row[0] for row in result]
                 assert "cortex" in table_names
+
+            # Clean up
+            adapter.close()
 
     def test_setup_wrong_db_type(self):
         """Test that setup raises error for wrong database type."""
@@ -143,6 +163,9 @@ class TestSqliteMetaStore:
                 result = conn.execute(text("SELECT 1"))
                 assert result.scalar() == 1
 
+            # Clean up
+            adapter.close()
+
     def test_get_async_engine(self, temp_db_config):
         """Test getting an async engine."""
         mock_config, db_path = temp_db_config
@@ -157,6 +180,9 @@ class TestSqliteMetaStore:
             async_engine = adapter.get_async_engine()
             assert async_engine is not None
 
+            # Clean up
+            adapter.close()
+
     def test_create_cortex(self, temp_db_config):
         """Test creating a cortex."""
         mock_config, db_path = temp_db_config
@@ -169,8 +195,13 @@ class TestSqliteMetaStore:
             adapter.setup()
 
             # Create a cortex
-            cortex_id = adapter.create_cortex("test_cortex", "/test/path")
-            assert cortex_id is not None
+            cortex = adapter.create_cortex("test_cortex", "/test/path")
+            assert cortex is not None
+            assert cortex.cortex_id is not None
+            assert cortex.cortex_name == "test_cortex"
+            assert cortex.path == "/test/path"
+
+            cortex_id = cortex.cortex_id
 
             # Verify the cortex was created in the database
             engine = adapter.get_sync_engine()
@@ -184,6 +215,9 @@ class TestSqliteMetaStore:
                 assert row[1] == "test_cortex"  # cortex_name column
                 assert row[2] == "/test/path"  # path column
 
+            # Clean up
+            adapter.close()
+
     def test_get_cortex_by_id(self, temp_db_config):
         """Test getting a cortex by ID."""
         mock_config, db_path = temp_db_config
@@ -196,13 +230,16 @@ class TestSqliteMetaStore:
             adapter.setup()
 
             # Create a cortex first
-            cortex_id = adapter.create_cortex("test_cortex", "/test/path")
+            cortex = adapter.create_cortex("test_cortex", "/test/path")
 
             # Get the cortex by ID
-            cortex = adapter.get_cortex_by_id(cortex_id)
+            cortex = adapter.get_cortex_by_id(cortex.cortex_id)
             assert cortex is not None
             assert cortex.cortex_name == "test_cortex"
             assert cortex.path == "/test/path"
+
+            # Clean up
+            adapter.close()
 
     def test_get_cortex_by_id_not_found(self, temp_db_config):
         """Test getting a cortex by ID when it doesn't exist."""
@@ -219,6 +256,9 @@ class TestSqliteMetaStore:
             cortex = adapter.get_cortex_by_id("non_existent_id")
             assert cortex is None
 
+            # Clean up
+            adapter.close()
+
     def test_get_cortex_by_name(self, temp_db_config):
         """Test getting a cortex by name."""
         mock_config, db_path = temp_db_config
@@ -231,11 +271,14 @@ class TestSqliteMetaStore:
             adapter.setup()
 
             # Create a cortex first
-            cortex_id = adapter.create_cortex("test_cortex", "/test/path")
+            cortex = adapter.create_cortex("test_cortex", "/test/path")
 
             # Get the cortex by name
-            found_cortex_id = adapter.get_cortex_by_name("test_cortex")
-            assert found_cortex_id == cortex_id
+            found_cortex = adapter.get_cortex_by_name(cortex.cortex_name)
+            assert found_cortex.cortex_id == cortex.cortex_id
+
+            # Clean up
+            adapter.close()
 
     def test_get_cortex_by_name_not_found(self, temp_db_config):
         """Test getting a cortex by name when it doesn't exist."""
@@ -251,6 +294,9 @@ class TestSqliteMetaStore:
             # Try to get a non-existent cortex
             cortex_id = adapter.get_cortex_by_name("non_existent_cortex")
             assert cortex_id is None
+
+            # Clean up
+            adapter.close()
 
     def test_list_cortices(self, temp_db_config):
         """Test listing all cortices."""
@@ -274,6 +320,9 @@ class TestSqliteMetaStore:
             assert "cortex1" in cortex_names
             assert "cortex2" in cortex_names
 
+            # Clean up
+            adapter.close()
+
     def test_update_cortex(self, temp_db_config):
         """Test updating a cortex."""
         mock_config, db_path = temp_db_config
@@ -286,21 +335,24 @@ class TestSqliteMetaStore:
             adapter.setup()
 
             # Create a cortex first
-            cortex_id = adapter.create_cortex("test_cortex", "/test/path")
+            cortex = adapter.create_cortex("test_cortex", "/test/path")
 
             # Get the cortex and update it
-            cortex = adapter.get_cortex_by_id(cortex_id)
+            cortex = adapter.get_cortex_by_id(cortex.cortex_id)
             cortex.cortex_name = "updated_cortex"
             cortex.path = "/updated/path"
 
             # Update the cortex
-            result = adapter.update_cortex(cortex)
-            assert result is True
+            update_result = adapter.update_cortex(cortex)
+            assert update_result is not None
 
             # Verify the update
-            updated_cortex = adapter.get_cortex_by_id(cortex_id)
+            updated_cortex = adapter.get_cortex_by_id(cortex.cortex_id)
             assert updated_cortex.cortex_name == "updated_cortex"
             assert updated_cortex.path == "/updated/path"
+
+            # Clean up
+            adapter.close()
 
     def test_database_persistence(self, temp_db_config):
         """Test that data persists between adapter instances."""
@@ -315,7 +367,8 @@ class TestSqliteMetaStore:
             adapter1.setup()
 
             # Create a cortex
-            cortex_id = adapter1.create_cortex("test_cortex", "/test/path")
+            cortex = adapter1.create_cortex("test_cortex", "/test/path")
+            cortex_id = cortex.cortex_id
 
             # Create second adapter and verify data persists
             adapter2 = SqliteMetaStore()
@@ -326,6 +379,10 @@ class TestSqliteMetaStore:
             assert cortex is not None
             assert cortex.cortex_name == "test_cortex"
             assert cortex.path == "/test/path"
+
+            # Clean up
+            adapter1.close()
+            adapter2.close()
 
     def test_multiple_setup_calls(self, temp_db_config):
         """Test that multiple setup calls don't cause issues."""
@@ -348,6 +405,9 @@ class TestSqliteMetaStore:
             with engine.connect() as conn:
                 result = conn.execute(text("SELECT 1"))
                 assert result.scalar() == 1
+
+            # Clean up
+            adapter.close()
 
 
 class TestSqliteMetaStoreIntegration:
@@ -411,10 +471,11 @@ class TestSqliteMetaStoreIntegration:
             assert async_engine is not None
 
             # Test cortex operations
-            cortex_id = adapter.create_cortex("integration_cortex", "/integration/path")
-            assert cortex_id is not None
+            cortex = adapter.create_cortex("integration_cortex", "/integration/path")
+            assert cortex is not None
+            assert cortex.cortex_id is not None
 
-            cortex = adapter.get_cortex_by_id(cortex_id)
+            cortex = adapter.get_cortex_by_id(cortex.cortex_id)
             assert cortex.cortex_name == "integration_cortex"
             assert cortex.path == "/integration/path"
 
@@ -422,3 +483,6 @@ class TestSqliteMetaStoreIntegration:
             cortices = adapter.list_cortices()
             assert len(cortices) == 1
             assert cortices[0].cortex_name == "integration_cortex"
+
+            # Clean up
+            adapter.close()

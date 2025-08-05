@@ -1,3 +1,4 @@
+import time
 from typing import Any, List, Tuple
 
 from .chunking.interface import Chunk
@@ -7,8 +8,11 @@ from .data_store.interfaces import VectorStore
 from .reranker.factory import RerankerFactory
 from .reranker.interface import Reranker
 from .summarizer.factory import Summarizer, SummarizerFactory
+from .synapso_logger import get_logger
 from .vectorizer.factory import VectorizerFactory
 from .vectorizer.interface import Vectorizer
+
+logger = get_logger(__name__)
 
 
 def _assure_not_none(obj: Any, name: str) -> Any:
@@ -19,6 +23,7 @@ def _assure_not_none(obj: Any, name: str) -> Any:
 
 class QueryManager:
     def __init__(self):
+        start_time = time.time()
         global_config: GlobalConfig = get_config()
 
         try:
@@ -50,6 +55,9 @@ class QueryManager:
                 ),
                 "vector store",
             )
+            logger.info(
+                "QueryManager initialized in %s seconds", time.time() - start_time
+            )
         except Exception as e:
             raise RuntimeError(
                 f"Failed to initialize QueryManager components: {e}"
@@ -59,9 +67,14 @@ class QueryManager:
         """
         Query the vector store and return a summary of the results.
         """
+        start_time = time.time()
         query_chunk = Chunk(text=query)
         query_vector = self.vectorizer.vectorize(query_chunk)
+        query_prep_time = time.time()
+        logger.info("Query preparation took %s seconds", query_prep_time - start_time)
         results = self.vector_store.vector_search(query_vector)
+        results_time = time.time()
+        logger.info("Vector search took %s seconds", results_time - query_prep_time)
         results_with_text = [
             (
                 result[0],
@@ -70,10 +83,13 @@ class QueryManager:
             )
             for result in results
         ]
-
+        rerank_start_time = time.time()
         reranked_results = self.reranker.rerank(results_with_text, query_vector)
+        rerank_time = time.time()
+        logger.info("Reranker took %s seconds", rerank_time - rerank_start_time)
         texts_with_scores = [(text, score) for _, text, score in reranked_results]
-
-        # Sumamrize this.
+        summarize_start_time = time.time()
         summary = self.summarizer.summarize(query, texts_with_scores)
+        summarize_time = time.time()
+        logger.info("Summarizer took %s seconds", summarize_time - summarize_start_time)
         return summary

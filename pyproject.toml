@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synapso_core"
-version = "0.2.0"
+version = "0.2.1"
 description = "Synapso Core"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -22,7 +22,9 @@ dependencies = [
     "sqlite-vss==0.1.2",
     "aiosqlite==0.21.0",
     "greenlet==3.2.3",
-    "mlx-lm==0.26.2"
+    "mlx-lm==0.26.2",
+    "markdown==3.8.2",
+    "beautifulsoup4==4.13.4"
 ]
 
 [project.urls]

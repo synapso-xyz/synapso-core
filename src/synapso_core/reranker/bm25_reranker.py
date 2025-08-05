@@ -1,4 +1,5 @@
 import math
+import time
 from typing import List, Tuple
 
 import nltk
@@ -8,7 +9,10 @@ from nltk.tokenize import word_tokenize
 from rank_bm25 import BM25Okapi
 
 from ..models import Vector
+from ..synapso_logger import get_logger
 from .interface import Reranker
+
+logger = get_logger(__name__)
 
 
 class BM25Reranker(Reranker):
@@ -145,7 +149,9 @@ class BM25Reranker(Reranker):
         texts = [text for _, text, _ in results]
 
         # Build BM25 index from the result texts
+        start_time = time.time()
         self._build_bm25_index(texts)
+        logger.info("BM25 index built in %s seconds", time.time() - start_time)
 
         # Use provided query text or fallback to first result text
         if not query_text and texts:
@@ -154,18 +160,25 @@ class BM25Reranker(Reranker):
         if not query_text:
             return results
 
+        start_time = time.time()
         query_tokens = self._tokenize(query_text)
+        logger.info("Query tokens tokenized in %s seconds", time.time() - start_time)
         if not query_tokens:
             return results
 
         # Get BM25 scores
         if self._bm25 is not None:
+            start_time = time.time()
             bm25_scores = self._bm25.get_scores(query_tokens)
+            logger.info(
+                "BM25 scores calculated in %s seconds", time.time() - start_time
+            )
         else:
             # Fallback if BM25 index couldn't be built
             return results
 
         # Combine BM25 scores with original scores
+        start_time = time.time()
         reranked_results = []
         for i, (vector, text, original_score) in enumerate(results):
             bm25_score = bm25_scores[i] if i < len(bm25_scores) else 0.0
@@ -180,5 +193,5 @@ class BM25Reranker(Reranker):
 
         # Sort by combined score in descending order
         reranked_results.sort(key=lambda x: x[2], reverse=True)
-
+        logger.info("Reranked results sorted in %s seconds", time.time() - start_time)
         return reranked_results
