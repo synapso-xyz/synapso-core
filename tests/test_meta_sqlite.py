@@ -354,9 +354,6 @@ class TestSqliteMetaStore:
             # Clean up
             adapter.close()
 
-            # Clean up
-            adapter.close()
-
     def test_database_persistence(self, temp_db_config):
         """Test that data persists between adapter instances."""
         mock_config, db_path = temp_db_config

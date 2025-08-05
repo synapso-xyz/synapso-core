@@ -23,10 +23,13 @@ class DBCortex(MetaStoreBase):
     cortex_id: Mapped[str] = mapped_column(primary_key=True)
     cortex_name: Mapped[str] = mapped_column(String, nullable=False)
     path: Mapped[str] = mapped_column(String(length=1024), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=func.now(), nullable=False)  # pylint: disable=not-callable
+    created_at: Mapped[datetime] = mapped_column(
+        default=func.now(),  # pylint: disable=not-callable
+        nullable=False,
+    )
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(),  # pylint: disable=not-callable
-        onupdate=func.now(),  # pylint: disable=not-callable
+        server_onupdate=func.now(),  # pylint: disable=not-callable
         nullable=False,
     )
     last_indexed_at: Mapped[datetime] = mapped_column(nullable=True)

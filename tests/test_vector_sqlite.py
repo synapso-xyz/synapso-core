@@ -443,7 +443,6 @@ class TestSqliteVectorStore:
             with SqliteVectorStore() as adapter:
                 adapter.setup()
                 assert adapter is not None
-            adapter.close()
 
     def test_sqlite_vss_extension_loading(self, temp_db_config):
         """Test that SQLite VSS extension is properly loaded."""

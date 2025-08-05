@@ -34,7 +34,7 @@ class InstructSummarizer:
         Answer:
         """
 
-        logger.info("Prompt: %s", prompt)
+        logger.debug("Prompt: %s", prompt)
 
         return prompt
 
