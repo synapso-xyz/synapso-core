@@ -42,35 +42,35 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
 
     data_store_type: str = "meta_store"
 
-    def create_cortex(self, cortex_name: str) -> DBCortex:
+    def create_cortex(self, cortex_name: str, cortex_path: str) -> DBCortex:
         """
         Create a new cortex.
         """
-        pass
+        raise NotImplementedError
 
     def get_cortex_by_name(self, cortex_name: str) -> DBCortex | None:
         """
         Get a cortex by its name.
         """
-        pass
+        raise NotImplementedError
 
     def get_cortex_by_id(self, cortex_id: str) -> DBCortex | None:
         """
         Get a cortex by its id.
         """
-        pass
+        raise NotImplementedError
 
     def list_cortices(self) -> List[DBCortex]:
         """
         List all cortices.
         """
-        pass
+        raise NotImplementedError
 
     def update_cortex(self, updated_cortex: DBCortex) -> DBCortex | None:
         """
         Update a cortex. Returns the updated cortex.
         """
-        pass
+        raise NotImplementedError
 
 
 class PrivateChunkStore(SetupTearDownMixin, AsyncDataStore):

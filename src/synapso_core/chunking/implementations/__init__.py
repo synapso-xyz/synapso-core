@@ -1,3 +1,3 @@
-from .md import ChonkieRecursiveChunker, CustomChunker, LangchainMarkdownChunker
+from .md import ChonkieRecursiveChunker, LangchainMarkdownChunker
 
-__all__ = ["ChonkieRecursiveChunker", "LangchainMarkdownChunker", "CustomChunker"]
+__all__ = ["ChonkieRecursiveChunker", "LangchainMarkdownChunker"]

@@ -7,7 +7,7 @@ name = "synapso_core"
 version = "0.2.1"
 description = "Synapso Core"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Ganesh Palanikumar", email = "me@ganeshpkumar.dev"}]
@@ -24,7 +24,10 @@ dependencies = [
     "greenlet==3.2.3",
     "mlx-lm==0.26.2",
     "markdown==3.8.2",
-    "beautifulsoup4==4.13.4"
+    "beautifulsoup4==4.13.4",
+    "mlx-embeddings",
+    "mlx",
+    "apsw"
 ]
 
 [project.urls]

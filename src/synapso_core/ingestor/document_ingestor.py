@@ -45,4 +45,5 @@ def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
     except Exception as e:
         traceback = tb.format_exc()
         error_context = {"error_type": str(e), "traceback": traceback}
+        logger.error("Error ingesting file %s: %s", file_path, traceback)
         return False, error_context

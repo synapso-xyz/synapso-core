@@ -26,6 +26,7 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         Create a new cortex.
         """
         cortex_id = uuid.uuid4().hex
+        cortex_path = str(Path(cortex_path).expanduser().resolve())
         cortex = DBCortex(
             cortex_id=cortex_id,
             cortex_name=cortex_name,
@@ -62,7 +63,7 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         with Session(self.get_sync_engine()) as session:
             stmt = select(DBCortex)
             result = session.execute(stmt).scalars().all()
-            return result
+            return list(result)
 
     def update_cortex(self, updated_cortex: DBCortex) -> DBCortex | None:
         """

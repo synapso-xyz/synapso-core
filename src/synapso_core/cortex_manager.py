@@ -93,14 +93,14 @@ class CortexManager:
         )
         self.sync_engine = self.meta_store.get_sync_engine()
 
-    def create_cortex(self, cortex_name: str | None, folder_path: str) -> str:
+    def create_cortex(self, cortex_name: str, folder_path: str) -> DBCortex:
         _validate_cortex_path(folder_path)
         return self.meta_store.create_cortex(cortex_name, folder_path)
 
-    def get_cortex_by_id(self, cortex_id: str) -> DBCortex:
+    def get_cortex_by_id(self, cortex_id: str) -> DBCortex | None:
         return self.meta_store.get_cortex_by_id(cortex_id)
 
-    def get_cortex_by_name(self, cortex_name: str) -> DBCortex:
+    def get_cortex_by_name(self, cortex_name: str) -> DBCortex | None:
         return self.meta_store.get_cortex_by_name(cortex_name)
 
     def list_cortices(self) -> List[DBCortex]:

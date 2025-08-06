@@ -1,8 +1,4 @@
-from .implementations import (
-    ChonkieRecursiveChunker,
-    CustomChunker,
-    LangchainMarkdownChunker,
-)
+from .implementations import ChonkieRecursiveChunker, LangchainMarkdownChunker
 from .interface import Chunker
 
 
@@ -14,7 +10,7 @@ class ChunkerFactory:
     available_chunkers = {
         "langchain_markdown": LangchainMarkdownChunker,
         "chonkie_recursive": ChonkieRecursiveChunker,
-        "custom": CustomChunker,
+        # "custom": CustomChunker,
     }
 
     @staticmethod
