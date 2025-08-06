@@ -109,12 +109,12 @@ class CortexManager:
     def index_cortex(
         self, cortex_id: str | None = None, cortex_name: str | None = None
     ) -> bool:
-        if cortex_id is None and cortex_name is None:
-            raise ValueError("Either cortex_id or cortex_name must be provided")
         if cortex_id:
             cortex = self.get_cortex_by_id(cortex_id)
-        else:
+        elif cortex_name:
             cortex = self.get_cortex_by_name(cortex_name)
+        else:
+            raise ValueError("Either cortex_id or cortex_name must be provided")
 
         if cortex is None:
             raise ValueError(
