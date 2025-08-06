@@ -73,10 +73,6 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
                     "SELECT 1 FROM metadata WHERE content_hash = ?",
                     (vector_id,),
                 )
-                cursor.execute(
-                    "SELECT 1 FROM vss_vectors WHERE embedding = ?",
-                    (embedding_bytes,),
-                )
                 if cursor.fetchone() is not None:
                     logger.info(
                         "Vector with content_hash '%s' already exists.", vector_id

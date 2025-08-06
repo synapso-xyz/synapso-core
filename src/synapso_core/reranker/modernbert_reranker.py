@@ -7,9 +7,12 @@ from mlx_embeddings import generate, load  # type: ignore
 
 from synapso_core.models import Vector
 from synapso_core.reranker.interface import Reranker
+from synapso_core.synapso_logger import get_logger
 
 MODEL = "mlx-community/nomicai-modernbert-embed-base-4bit"
 model, tokenizer = load(MODEL)
+
+logger = get_logger(__name__)
 
 
 class ModernBertReranker(Reranker):
@@ -22,21 +25,22 @@ class ModernBertReranker(Reranker):
         query: Vector,
         query_text: str = "",
     ) -> List[Tuple[Vector, str, float]]:
-        print(f"Query: {query}")
-        print(f"Query text: {query_text}")
         texts_to_embed = [query_text] + [result[1] for result in results]
-        print(f"Texts to embed: {texts_to_embed}")
-        output = generate(self.model, self.tokenizer, texts_to_embed)
-        print("Output generated")
+        try:
+            output = generate(self.model, self.tokenizer, texts_to_embed)
+        except Exception as e:
+            logger.error(f"Error generating embeddings: {e}")
+            return results
         embeddings = output.text_embeds
         query_embedding = embeddings[0]
         results_embeddings = embeddings[1:]
         similarity_scores = mx.matmul(query_embedding, results_embeddings.T)
-        print(f"Similarity scores: {similarity_scores}")
         reranked_results = []
         for idx, r in enumerate(results):
-            reranked_results.append((r[0], r[1], similarity_scores[idx]))
+            score = float(similarity_scores[idx])
+            reranked_results.append((r[0], r[1], score))
 
+        reranked_results = sorted(reranked_results, key=lambda x: x[2], reverse=True)
         return reranked_results
 
 
