@@ -35,7 +35,7 @@ class InstructSummarizer:
         """
 
         logger.debug("Prompt: %s", prompt)
-
+        logger.info("Prompt length: %s", len(prompt))
         return prompt
 
     def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:

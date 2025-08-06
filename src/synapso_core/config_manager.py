@@ -62,7 +62,7 @@ class VectorStoreConfig(BaseConfig):
 
 
 class RerankerConfig(BaseConfig):
-    available_types: ClassVar[list[str]] = ["bm25"]
+    available_types: ClassVar[list[str]] = ["bm25", "modernbert"]
     reranker_type: str = "bm25"
     k1: float = 1.2
     b: float = 0.75
@@ -117,7 +117,7 @@ class GlobalConfig(BaseModel):
     chunker: ChunkerConfig = ChunkerConfig()
 
 
-def get_config(config_file: str = CONFIG_FILE) -> GlobalConfig:
+def get_config(config_file: str = str(CONFIG_FILE)) -> GlobalConfig:
     if not os.path.exists(config_file):
         raise FileNotFoundError(f"Config file {config_file} not found")
     with open(config_file, "r") as f:

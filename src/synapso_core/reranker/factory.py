@@ -1,5 +1,6 @@
 from .bm25_reranker import BM25Reranker
 from .interface import Reranker
+from .modernbert_reranker import ModernBertReranker
 
 
 class RerankerFactory:
@@ -9,6 +10,7 @@ class RerankerFactory:
 
     available_rerankers = {
         "bm25": BM25Reranker,
+        "modernbert": ModernBertReranker,
     }
 
     @staticmethod

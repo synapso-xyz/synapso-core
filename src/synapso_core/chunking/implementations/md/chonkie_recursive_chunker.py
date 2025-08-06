@@ -8,6 +8,7 @@ from ...interface import Chunk, Chunker
 class ChonkieRecursiveChunker(Chunker):
     def __init__(self):
         self.chunker = RecursiveChunker.from_recipe("markdown", lang="en")
+        self.chunker.chunk_size = 256
 
     def chunk_file(self, file_path: str) -> List[Chunk]:
         text = self.read_file(file_path)

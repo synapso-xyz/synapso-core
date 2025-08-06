@@ -84,7 +84,7 @@ class QueryManager:
             for result in results
         ]
         rerank_start_time = time.time()
-        reranked_results = self.reranker.rerank(results_with_text, query_vector)
+        reranked_results = self.reranker.rerank(results_with_text, query_vector, query)
         rerank_time = time.time()
         logger.info("Reranker took %s seconds", rerank_time - rerank_start_time)
         texts_with_scores = [(text, score) for _, text, score in reranked_results]
