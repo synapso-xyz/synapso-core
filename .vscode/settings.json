@@ -14,5 +14,6 @@
             "source.organizeImports": "explicit"
         }
     },
-    "ruff.enable": true
+    "ruff.enable": true,
+    "editor.codeActionsOnSave": {}
 }
