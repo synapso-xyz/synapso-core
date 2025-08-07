@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 from typing import List, Tuple
@@ -28,7 +29,7 @@ class InstructSummarizer:
 
     def _prepare_prompt(self, question: str, results: List[Tuple[str, float]]) -> str:
         """
-        Prepares the prompt for the LLM using the tokenizer's chat template.
+        Prepares the prompt for the LLM using a simple format.
         """
         # 1. Define the core instructions in a system prompt for clarity.
         system_prompt = """You are a precise and concise AI assistant.
@@ -58,7 +59,7 @@ Question: {question}"""
         # 5. Use apply_chat_template, which will correctly add the assistant prompt turn.
         # This is the most reliable way to format prompts.
         if hasattr(self.tokenizer, "apply_chat_template"):
-            prompt = self.tokenizer.apply_chat_template(
+            prompt = self.tokenizer.apply_chat_template(  # type: ignore
                 messages, tokenize=False, add_generation_prompt=True
             )
         else:
@@ -84,13 +85,15 @@ Question: {question}"""
         )
         response_time = time.time()
         logger.info("Response generated in %s seconds", response_time - start_time)
-        if (
-            isinstance(response, str)
-            and hasattr(self.tokenizer, "eos_token")
-            and self.tokenizer.eos_token in response
-        ):
-            return response.split(self.tokenizer.eos_token)[0].strip()
-        return response.strip() if isinstance(response, str) else str(response)
+
+        # Handle response properly
+        if isinstance(response, str):
+            # Check for EOS token if it exists
+            eos_token = getattr(self.tokenizer, "eos_token", None)
+            if eos_token and eos_token in response:
+                return response.split(eos_token)[0].strip()
+            return response.strip()
+        return str(response)
 
     async def run_summarizer_stream(
         self, question: str, results: List[Tuple[str, float]]
@@ -102,6 +105,8 @@ Question: {question}"""
         start_time = time.time()
         logger.info("EOS token: %s", getattr(self.tokenizer, "eos_token", None))
         first_token = True
+
+        # Use stream_generate which returns a synchronous generator
         for response in stream_generate(
             self.model,
             self.tokenizer,
@@ -123,7 +128,9 @@ Question: {question}"""
                 first_token = False
                 logger.info("First token time: %s", time.time() - start_time)
 
+            # Yield the token and allow other coroutines to run
             yield response.text if hasattr(response, "text") else str(response)
+            await asyncio.sleep(0)  # Allow other coroutines to run
 
         stream_time = time.time()
         logger.info(
