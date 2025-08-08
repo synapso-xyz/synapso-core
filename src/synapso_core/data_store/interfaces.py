@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Tuple
 
 from sqlalchemy import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from ..models import Vector, VectorMetadata
-from .data_models import DBCortex
+from .data_models import DBCortex, DBFile, DBFileVersion, Event
 
 
 class BaseDataStore(ABC):
@@ -71,6 +72,62 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
         Update a cortex. Returns the updated cortex.
         """
         raise NotImplementedError
+
+    def create_file(self, file: DBFile) -> DBFile:
+        """
+        Create a new file.
+        """
+        pass
+
+    def get_file_by_id(self, file_id: str) -> DBFile | None:
+        """
+        Get a file by its id.
+        """
+        pass
+
+    def create_file_version(self, file_version: DBFileVersion) -> DBFileVersion:
+        """
+        Create a new file version.
+        """
+        pass
+
+    def get_file_version_by_id(self, file_version_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its id.
+        """
+        pass
+
+    def get_file_version_by_file_id(self, file_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its file id.
+        """
+        pass
+
+    def assosiate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
+        """
+        Associate chunks with a file version.
+        """
+        pass
+
+    def get_file_version_by_chunk_id(self, chunk_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its chunk id.
+        """
+        pass
+
+    def create_event(self, event: Event) -> Event:
+        """
+        Create a new event.
+        """
+        pass
+
+    def get_events(
+        self, cortex_id: str, start_time: datetime, end_time: datetime
+    ) -> List[Event]:
+        """
+        Get events for a given cortex id and time range.
+        """
+        pass
 
 
 class PrivateChunkStore(SetupTearDownMixin, AsyncDataStore):

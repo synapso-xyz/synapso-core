@@ -11,39 +11,50 @@ from ..vectorizer.factory import VectorizerFactory
 logger = get_logger(__name__)
 
 
-def ingest_file(file_path: Path) -> Tuple[bool, Dict | None]:
-    try:
+class DocumentIngestor:
+    def __init__(self):
         global_config = get_config()
 
         chunker_type = global_config.chunker.chunker_type
-        chunker = ChunkerFactory.create_chunker(chunker_type)
+        self.chunker = ChunkerFactory.create_chunker(chunker_type)
 
         vectorizer_type = global_config.vectorizer.vectorizer_type
-        vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
+        self.vectorizer = VectorizerFactory.create_vectorizer(vectorizer_type)
+
+        meta_store_type = global_config.meta_store.meta_db_type
+        self.meta_store = DataStoreFactory.get_meta_store(meta_store_type)
 
         vector_store_type = global_config.vector_store.vector_db_type
-        vector_store = DataStoreFactory.get_vector_store(vector_store_type)
+        self.vector_store = DataStoreFactory.get_vector_store(vector_store_type)
 
         private_store_type = global_config.private_store.private_db_type
-        private_store = DataStoreFactory.get_private_store(private_store_type)
+        self.private_store = DataStoreFactory.get_private_store(private_store_type)
 
-        logger.info("Ingesting %s", file_path)
-        chunks = chunker.chunk_file(str(file_path))
+    def ingest_file(
+        self, file_path: Path, file_version_id: str
+    ) -> Tuple[bool, Dict | None]:
+        try:
+            logger.info("Ingesting %s", file_path)
+            chunks = self.chunker.chunk_file(str(file_path))
 
-        logger.info("Inserting %d chunks into private store", len(chunks))
-        for chunk in chunks:
-            private_store.insert(chunk.text)
+            chunk_ids = []
+            logger.info("Inserting %d chunks into private store", len(chunks))
+            for chunk in chunks:
+                chunk_id = self.private_store.insert(chunk.text)
+                chunk_ids.append(chunk_id)
 
-        logger.info("Vectorizing %d chunks", len(chunks))
-        vectors = vectorizer.vectorize_batch(chunks)
+            self.meta_store.assosiate_chunks(file_version_id, chunk_ids)
 
-        logger.info("Inserting %d vectors into vector store", len(vectors))
-        for v in vectors:
-            vector_store.insert(v)
+            logger.info("Vectorizing %d chunks", len(chunks))
+            vectors = self.vectorizer.vectorize_batch(chunks)
 
-        return True, None
-    except Exception as e:
-        traceback = tb.format_exc()
-        error_context = {"error_type": str(e), "traceback": traceback}
-        logger.error("Error ingesting file %s: %s", file_path, traceback)
-        return False, error_context
+            logger.info("Inserting %d vectors into vector store", len(vectors))
+            for v in vectors:
+                self.vector_store.insert(v)
+
+            return True, None
+        except Exception as e:
+            traceback = tb.format_exc()
+            error_context = {"error_type": str(e), "traceback": traceback}
+            logger.error("Error ingesting file %s: %s", file_path, traceback)
+            return False, error_context
