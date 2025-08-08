@@ -93,3 +93,31 @@ class QueryManager:
         summarize_time = time.time()
         logger.info("Summarizer took %s seconds", summarize_time - summarize_start_time)
         return summary
+
+    async def query_stream(self, query: str):
+        start_time = time.time()
+        query_chunk = Chunk(text=query)
+        query_vector = self.vectorizer.vectorize(query_chunk)
+        query_prep_time = time.time()
+        logger.info("Query preparation took %s seconds", query_prep_time - start_time)
+        results = self.vector_store.vector_search(query_vector, top_k=10)
+        results_time = time.time()
+        logger.info("Vector search took %s seconds", results_time - query_prep_time)
+        results_with_text = [
+            (
+                result[0],
+                self.private_store.get_by_chunk_id(result[0].vector_id),
+                result[1],
+            )
+            for result in results
+        ]
+        rerank_start_time = time.time()
+        reranked_results = self.reranker.rerank(results_with_text, query_vector, query)
+        rerank_time = time.time()
+        logger.info("Reranker took %s seconds", rerank_time - rerank_start_time)
+        texts_with_scores = [(text, score) for _, text, score in reranked_results]
+        logger.info("Starting summarizer stream")
+        async for token in self.summarizer.run_summarizer_stream(
+            query, texts_with_scores
+        ):
+            yield token

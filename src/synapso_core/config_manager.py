@@ -62,7 +62,7 @@ class VectorStoreConfig(BaseConfig):
 
 
 class RerankerConfig(BaseConfig):
-    available_types: ClassVar[list[str]] = ["bm25", "modernbert"]
+    available_types: ClassVar[list[str]] = ["bm25", "modernbert", "qwen3"]
     reranker_type: str = "bm25"
     k1: float = 1.2
     b: float = 0.75

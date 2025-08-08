@@ -10,3 +10,9 @@ class Summarizer(ABC):
     @abstractmethod
     def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:
         pass
+
+    @abstractmethod
+    async def run_summarizer_stream(
+        self, question: str, results: List[Tuple[str, float]]
+    ):
+        pass

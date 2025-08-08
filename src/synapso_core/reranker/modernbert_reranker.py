@@ -2,7 +2,6 @@
 from typing import List, Tuple
 
 import mlx.core as mx  # type: ignore
-import numpy as np  # type: ignore
 from mlx_embeddings import generate, load  # type: ignore
 
 from synapso_core.models import Vector
@@ -29,9 +28,9 @@ class ModernBertReranker(Reranker):
         try:
             output = generate(self.model, self.tokenizer, texts_to_embed)
         except Exception as e:
-            logger.error(f"Error generating embeddings: {e}")
+            logger.error("Error generating embeddings: %s", e)
             return results
-        embeddings = output.text_embeds
+        embeddings = output.text_embeds  # type: ignore
         query_embedding = embeddings[0]
         results_embeddings = embeddings[1:]
         similarity_scores = mx.matmul(query_embedding, results_embeddings.T)
@@ -42,15 +41,3 @@ class ModernBertReranker(Reranker):
 
         reranked_results = sorted(reranked_results, key=lambda x: x[2], reverse=True)
         return reranked_results
-
-
-if __name__ == "__main__":
-    reranker = ModernBertReranker()
-    results = [
-        (Vector(vector_id="1", vector=np.random.rand(1024)), "result 1", 0.5),
-        (Vector(vector_id="2", vector=np.random.rand(1024)), "result 2", 0.3),
-        (Vector(vector_id="3", vector=np.random.rand(1024)), "result 3", 0.2),
-    ]
-    query = Vector(vector_id="0", vector=np.random.rand(1024))
-    query_text = "query"
-    reranker.rerank(results, query, query_text)
