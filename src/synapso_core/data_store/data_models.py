@@ -81,7 +81,7 @@ class Event(MetaStoreBase):
     event_timestamp: Mapped[datetime] = mapped_column(nullable=False)
 
 
-class BackgroundJob(MetaStoreBase):
+class IndexingJob(MetaStoreBase):
     __tablename__ = "background_jobs"
     job_id: Mapped[str] = mapped_column(String, primary_key=True)
     cortex_id: Mapped[str] = mapped_column(String, nullable=False)
