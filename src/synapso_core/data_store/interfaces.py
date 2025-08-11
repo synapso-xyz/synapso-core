@@ -159,6 +159,12 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
         """
         raise NotImplementedError
 
+    def list_indexing_jobs(self, status: str = "IN_PROGRESS") -> List[IndexingJob]:
+        """
+        List all indexing jobs.
+        """
+        raise NotImplementedError
+
 
 class PrivateChunkStore(SetupTearDownMixin, AsyncDataStore):
     """
@@ -185,6 +191,13 @@ class PrivateChunkStore(SetupTearDownMixin, AsyncDataStore):
         pass
 
     @abstractmethod
+    def insert_all(self, chunks: List[str]) -> List[str]:
+        """
+        Insert a list of private chunks into the store.
+        """
+        pass
+
+    @abstractmethod
     def delete(self, chunk_id: str) -> None:
         """
         Delete a private chunk from the store.
@@ -203,6 +216,13 @@ class VectorStore(SetupTearDownMixin, BaseDataStore):
     def insert(self, vector: Vector) -> bool:
         """
         Insert a new vector with its associated metadata into the store.
+        """
+        pass
+
+    @abstractmethod
+    def insert_all(self, vectors: List[Vector]) -> List[str]:
+        """
+        Insert a list of vectors into the store.
         """
         pass
 

@@ -153,10 +153,17 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         Associate chunks with a file version.
         """
         file_version_to_chunk_ids = []
-        for chunk_id in chunk_ids:
+        file_version = self.get_file_version_by_id(file_version_id)
+        if not file_version:
+            raise ValueError(f"File version {file_version_id} not found")
+        cortex_id = file_version.cortex_id
+
+        for idx, chunk_id in enumerate(chunk_ids):
             file_version_to_chunk_id = FileVersionToChunkId(
                 file_version_id=file_version_id,
                 chunk_id=chunk_id,
+                cortex_id=cortex_id,
+                chunk_index=idx,
             )
             file_version_to_chunk_ids.append(file_version_to_chunk_id)
 
@@ -231,6 +238,12 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
             session.commit()
             session.refresh(indexing_job)
             return indexing_job
+
+    def list_indexing_jobs(self, status: str = "IN_PROGRESS") -> List[IndexingJob]:
+        with Session(self.get_sync_engine()) as session:
+            stmt = select(IndexingJob).where(IndexingJob.job_status == status)
+            result = session.execute(stmt).scalars().all()
+            return list(result)
 
     def setup(self) -> bool:
         MetaStoreBase.metadata.create_all(self.get_sync_engine())

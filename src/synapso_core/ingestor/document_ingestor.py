@@ -19,7 +19,7 @@ from ..vectorizer.factory import VectorizerFactory
 logger = get_logger(__name__)
 
 
-SUPPORTED_FORMATS = [".md", ".markdown"]
+SUPPORTED_FORMATS = [".md", ".markdown", ".txt"]
 
 
 class FileState(Enum):
@@ -160,15 +160,18 @@ class CortexIngestor:
 
         self.document_ingestor = DocumentIngestor()
 
-    def ingest_cortex(self, cortex_id: str) -> bool:
+    def ingest_cortex(self, cortex_id: str, job_id: str | None = None) -> bool:
         """
         Ingest a cortex.
         """
+
         cortex = self.meta_store.get_cortex_by_id(cortex_id)
         if cortex is None:
             raise ValueError(f"Cortex with id {cortex_id} not found")
 
-        job_id = uuid.uuid4().hex
+        if not job_id:
+            job_id = uuid.uuid4().hex
+
         db_indexing_job = IndexingJob(
             job_id=job_id,
             cortex_id=cortex_id,
@@ -182,97 +185,109 @@ class CortexIngestor:
         )
         db_indexing_job = self.meta_store.create_indexing_job(db_indexing_job)
 
-        # For now, let is just trigger the indexing.
-        cortex_path = cortex.path
-        synapso_dir_path = Path(cortex_path) / ".synapso"
-        synapso_dir_path.mkdir(exist_ok=True, parents=True)
+        try:
+            # For now, let is just trigger the indexing.
+            cortex_path = cortex.path
+            synapso_dir_path = Path(cortex_path) / ".synapso"
+            synapso_dir_path.mkdir(exist_ok=True, parents=True)
 
-        file_list_path = _get_file_list_path(directory_path=cortex_path)
-        ingestion_errors_path = _get_ingestion_errors_path(directory_path=cortex_path)
-
-        has_errors = False
-
-        n_total_files = 0
-        n_eligible_files = 0
-
-        file_records = []
-        for file_record in _file_walk(cortex_path):
-            file_path = file_record.path
-            file_eligibility = file_record.state
-
-            n_total_files += 1
-
-            if file_eligibility == FileState.ELIGIBLE:
-                n_eligible_files += 1
-
-            db_file = DBFile(
-                cortex_id=cortex.cortex_id,
-                file_id=uuid.uuid4().hex,
-                file_name=file_record.file_name,
-                file_path=str(file_path),
-                file_size=file_record.file_size,
-                file_type=file_record.file_type,
-                file_created_at=file_record.file_created_at,
-                file_updated_at=file_record.file_updated_at,
-                eligibility_status=file_eligibility.name.lower(),
-                last_indexed_at=None,
+            file_list_path = _get_file_list_path(directory_path=cortex_path)
+            ingestion_errors_path = _get_ingestion_errors_path(
+                directory_path=cortex_path
             )
-            self.meta_store.create_file(
-                db_file
-            )  # TODO: This needs to be upsert, not create
 
-            db_file_version = DBFileVersion(
-                cortex_id=cortex.cortex_id,
-                file_version_id=uuid.uuid4().hex,
-                file_id=db_file.file_id,
-                file_version_created_at=file_record.file_created_at,
-                file_version_invalid_at=None,
-                file_version_is_valid=True,
-            )
-            self.meta_store.create_file_version(
-                db_file_version
-            )  # TODO: This needs to be upsert, not create
-            file_record.db_file = db_file
-            file_record.db_file_version = db_file_version
-            file_records.append(file_record)
+            has_errors = False
 
-        db_indexing_job.n_total_files = n_total_files
-        db_indexing_job.n_eligible_files = n_eligible_files
-        db_indexing_job.job_status = "IN_PROGRESS"
-        db_indexing_job = self.meta_store.update_indexing_job(db_indexing_job)
+            n_total_files = 0
+            n_eligible_files = 0
 
-        with (
-            file_list_path.open("w", newline="", encoding="utf-8") as f,
-            ingestion_errors_path.open("w", newline="", encoding="utf-8") as err_file,
-        ):
-            writer = csv.writer(f)
-            writer.writerow(["path", "eligibility"])
-            for file_record in file_records:
+            file_records = []
+            for file_record in _file_walk(cortex_path):
                 file_path = file_record.path
                 file_eligibility = file_record.state
 
-                writer.writerow([str(file_path), str(file_eligibility.name.lower())])
+                n_total_files += 1
 
                 if file_eligibility == FileState.ELIGIBLE:
-                    logger.info("Ingesting %s", file_path)
-                    success, error_context = self.document_ingestor.ingest_file(
-                        file_path, db_file_version.file_version_id
+                    n_eligible_files += 1
+
+                db_file = DBFile(
+                    cortex_id=cortex.cortex_id,
+                    file_id=uuid.uuid4().hex,
+                    file_name=file_record.file_name,
+                    file_path=str(file_path),
+                    file_size=file_record.file_size,
+                    file_type=file_record.file_type,
+                    file_created_at=file_record.file_created_at,
+                    file_updated_at=file_record.file_updated_at,
+                    eligibility_status=file_eligibility.name.lower(),
+                    last_indexed_at=None,
+                )
+                self.meta_store.create_file(db_file)
+
+                db_file_version = DBFileVersion(
+                    cortex_id=cortex.cortex_id,
+                    file_version_id=uuid.uuid4().hex,
+                    file_id=db_file.file_id,
+                    file_version_created_at=file_record.file_created_at,
+                    file_version_invalid_at=None,
+                    file_version_is_valid=True,
+                )
+                self.meta_store.create_file_version(db_file_version)
+                file_record.db_file = db_file
+                file_record.db_file_version = db_file_version
+                file_records.append(file_record)
+
+            db_indexing_job.n_total_files = n_total_files
+            db_indexing_job.n_eligible_files = n_eligible_files
+            db_indexing_job.job_status = "IN_PROGRESS"
+            db_indexing_job = self.meta_store.update_indexing_job(db_indexing_job)
+
+            with (
+                file_list_path.open("w", newline="", encoding="utf-8") as f,
+                ingestion_errors_path.open(
+                    "w", newline="", encoding="utf-8"
+                ) as err_file,
+            ):
+                writer = csv.writer(f)
+                writer.writerow(["path", "eligibility"])
+                for file_record in file_records:
+                    file_path = file_record.path
+                    file_eligibility = file_record.state
+
+                    writer.writerow(
+                        [str(file_path), str(file_eligibility.name.lower())]
                     )
-                    db_file = file_record.db_file
-                    db_file.last_indexed_at = datetime.now(timezone.utc)
-                    self.meta_store.update_file(db_file)
 
-                    if not success:
-                        err_file.write(json.dumps(error_context) + "\n")
-                        has_errors = True
-                    db_indexing_job.files_processed += 1
-                    db_indexing_job = self.meta_store.update_indexing_job(
-                        db_indexing_job
-                    )
-                else:
-                    continue
+                    if file_eligibility == FileState.ELIGIBLE:
+                        logger.info("Ingesting %s", file_path)
+                        success, error_context = self.document_ingestor.ingest_file(
+                            file_path, db_file_version.file_version_id
+                        )
+                        db_file = file_record.db_file
+                        db_file.last_indexed_at = datetime.now(timezone.utc)
+                        self.meta_store.update_file(db_file)
 
-        cortex.last_indexed_at = datetime.now(timezone.utc)
-        self.meta_store.update_cortex(cortex)
+                        if not success:
+                            err_file.write(json.dumps(error_context) + "\n")
+                            has_errors = True
+                        db_indexing_job.files_processed += 1
+                        db_indexing_job = self.meta_store.update_indexing_job(
+                            db_indexing_job
+                        )
+                    else:
+                        continue
 
-        return not has_errors
+            db_indexing_job.job_status = "COMPLETED"
+            db_indexing_job.job_end_time = datetime.now(timezone.utc)
+            db_indexing_job = self.meta_store.update_indexing_job(db_indexing_job)
+
+            cortex.last_indexed_at = datetime.now(timezone.utc)
+            self.meta_store.update_cortex(cortex)
+
+            return not has_errors
+        except Exception as e:
+            db_indexing_job.job_status = "FAILED"
+            db_indexing_job.job_end_time = datetime.now(timezone.utc)
+            db_indexing_job = self.meta_store.update_indexing_job(db_indexing_job)
+            raise e

@@ -67,6 +67,7 @@ class DBFileVersion(MetaStoreBase):
 
 class FileVersionToChunkId(MetaStoreBase):
     __tablename__ = "file_version_to_chunk_id"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     cortex_id: Mapped[str] = mapped_column(String, nullable=False)
     file_version_id: Mapped[str] = mapped_column(String, nullable=False)
     chunk_id: Mapped[str] = mapped_column(String, nullable=False)

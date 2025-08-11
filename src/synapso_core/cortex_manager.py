@@ -43,7 +43,10 @@ class CortexManager:
         return self.meta_store.list_cortices()
 
     def index_cortex(
-        self, cortex_id: str | None = None, cortex_name: str | None = None
+        self,
+        cortex_id: str | None = None,
+        cortex_name: str | None = None,
+        job_id: str | None = None,
     ) -> bool:
         if not cortex_id and not cortex_name:
             raise ValueError("Either cortex_id or cortex_name must be provided")
@@ -57,7 +60,7 @@ class CortexManager:
         if not cortex_id:
             raise ValueError("Unable to find cortex_id")
 
-        result = self.cortex_ingestor.ingest_cortex(cortex_id)
+        result = self.cortex_ingestor.ingest_cortex(cortex_id, job_id)
         return result
 
     async def delete_cortex(self, cortex_id: str) -> bool:

@@ -1,4 +1,8 @@
-from .implementations import ChonkieRecursiveChunker, LangchainMarkdownChunker
+from .implementations import (
+    ChonkieRecursiveChunker,
+    LangchainMarkdownChunker,
+    SimpleTxtChunker,
+)
 from .interface import Chunker
 
 
@@ -10,6 +14,7 @@ class ChunkerFactory:
     available_chunkers = {
         "langchain_markdown": LangchainMarkdownChunker,
         "chonkie_recursive": ChonkieRecursiveChunker,
+        "simple_txt": SimpleTxtChunker,
         # "custom": CustomChunker,
     }
 
