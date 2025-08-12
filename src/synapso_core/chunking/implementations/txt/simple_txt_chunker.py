@@ -2,12 +2,17 @@ from typing import List
 
 from chonkie import SentenceChunker
 
+from ....vectorizer.implementations.sentence_transformer_embeddings import tokenizer
 from ...interface import Chunk, Chunker
 
 
 class SimpleTxtChunker(Chunker):
     def __init__(self):
-        self.chunker = SentenceChunker(chunk_size=256, chunk_overlap=30)
+        self.chunker = SentenceChunker(
+            tokenizer._tokenizer,
+            chunk_size=1024,
+            chunk_overlap=30,
+        )
 
     def chunk_text(self, text: str) -> List[Chunk]:
         chunks = self.chunker.chunk(text)

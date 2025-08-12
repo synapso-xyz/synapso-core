@@ -2,13 +2,15 @@ from typing import List
 
 from chonkie import RecursiveChunker
 
+from ....vectorizer.implementations.sentence_transformer_embeddings import tokenizer
 from ...interface import Chunk, Chunker
 
 
 class ChonkieRecursiveChunker(Chunker):
     def __init__(self):
         self.chunker = RecursiveChunker.from_recipe("markdown", lang="en")
-        self.chunker.chunk_size = 256
+        self.chunker.chunk_size = 1024
+        self.chunker.tokenizer = tokenizer._tokenizer
 
     def chunk_file(self, file_path: str) -> List[Chunk]:
         text = self.read_file(file_path)
