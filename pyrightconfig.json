@@ -1,9 +1,9 @@
 {
     "venvPath": ".",
     "venv": ".venv",
-    "pythonPath": ".venv/bin/python",
     "extraPaths": [
         "./src"
     ],
-    "typeCheckingMode": "basic"
+    "typeCheckingMode": "basic",
+    "pythonVersion": "3.11"
 }
