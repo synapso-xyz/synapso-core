@@ -264,7 +264,7 @@ class CortexIngestor:
                     if file_eligibility == FileState.ELIGIBLE:
                         logger.info("Ingesting %s", file_path)
                         success, error_context = self.document_ingestor.ingest_file(
-                            file_path, db_file_version.file_version_id
+                            file_path, file_record.db_file_version.file_version_id
                         )
                         db_file = file_record.db_file
                         db_file.last_indexed_at = datetime.now(timezone.utc)
