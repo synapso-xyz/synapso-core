@@ -69,10 +69,10 @@ class FileRecord:
         self.path = path.expanduser().resolve()
         self.state = state
 
-        stat = path.stat()
-        self.file_name = path.name
+        stat = self.path.stat()
+        self.file_name = self.path.name
         self.file_size = stat.st_size  # in bytes
-        self.file_type = path.suffix.lower()
+        self.file_type = self.path.suffix.lower()
         # Note: st_ctime is change time on POSIX. Prefer st_birthtime if present.
         created_ts = getattr(stat, "st_birthtime", stat.st_ctime)
         self.file_created_at = datetime.fromtimestamp(created_ts, timezone.utc)
@@ -99,7 +99,8 @@ def _get_ingestion_errors_path(directory_path: str, ensure_present=True) -> Path
 
 def _file_walk(directory_path: str) -> Iterator[FileRecord]:
     root = Path(directory_path).expanduser().resolve()
-    for dirpath, _, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d != ".synapso"]
         base = Path(dirpath)
         for fname in filenames:
             fpath = base / fname
@@ -183,7 +184,9 @@ class DocumentIngestor:
         except Exception as e:
             traceback = tb.format_exc()
             error_context = {
-                "error_type": str(e),
+                "error_type": "exception",
+                "exception_class": e.__class__.__name__,
+                "message": str(e),
                 "traceback": traceback,
                 "file_path": str(file_path),
                 "file_version_id": file_version_id,
@@ -252,32 +255,34 @@ class CortexIngestor:
                 if file_eligibility == FileState.ELIGIBLE:
                     n_eligible_files += 1
 
-                db_file = DBFile(
-                    cortex_id=cortex.cortex_id,
-                    file_id=uuid.uuid4().hex,
-                    file_name=file_record.file_name,
-                    file_path=str(file_path),
-                    file_size=file_record.file_size,
-                    file_type=file_record.file_type,
-                    file_created_at=file_record.file_created_at,
-                    file_updated_at=file_record.file_updated_at,
-                    eligibility_status=file_eligibility.name.lower(),
-                    last_indexed_at=None,
-                )
-                db_file = self.meta_store.create_file(db_file)
+                    db_file = DBFile(
+                        cortex_id=cortex.cortex_id,
+                        file_id=uuid.uuid4().hex,
+                        file_name=file_record.file_name,
+                        file_path=str(file_path),
+                        file_size=file_record.file_size,
+                        file_type=file_record.file_type,
+                        file_created_at=file_record.file_created_at,
+                        file_updated_at=file_record.file_updated_at,
+                        eligibility_status=file_eligibility.name.lower(),
+                        last_indexed_at=None,
+                    )
+                    db_file = self.meta_store.create_file(db_file)
 
-                db_file_version = DBFileVersion(
-                    cortex_id=cortex.cortex_id,
-                    file_version_id=uuid.uuid4().hex,
-                    file_id=db_file.file_id,
-                    file_version_created_at=file_record.file_created_at,
-                    file_version_invalid_at=None,
-                    file_version_is_valid=True,
-                )
-                db_file_version = self.meta_store.create_file_version(db_file_version)
-                file_record.db_file = db_file
-                file_record.db_file_version = db_file_version
-                file_records.append(file_record)
+                    db_file_version = DBFileVersion(
+                        cortex_id=cortex.cortex_id,
+                        file_version_id=uuid.uuid4().hex,
+                        file_id=db_file.file_id,
+                        file_version_created_at=file_record.file_created_at,
+                        file_version_invalid_at=None,
+                        file_version_is_valid=True,
+                    )
+                    db_file_version = self.meta_store.create_file_version(
+                        db_file_version
+                    )
+                    file_record.db_file = db_file
+                    file_record.db_file_version = db_file_version
+                    file_records.append(file_record)
 
             db_indexing_job.n_total_files = n_total_files
             db_indexing_job.n_eligible_files = n_eligible_files
@@ -301,7 +306,6 @@ class CortexIngestor:
                     )
 
                     if file_eligibility == FileState.ELIGIBLE:
-                        logger.info("Ingesting %s", file_path)
                         success, error_context = self.document_ingestor.ingest_file(
                             file_path, file_record.db_file_version.file_version_id
                         )
