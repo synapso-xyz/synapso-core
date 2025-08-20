@@ -90,9 +90,6 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         """
         Create a new file.
         """
-        existing_file = self.get_file_by_path(file.file_path)
-        if existing_file:
-            return existing_file
 
         with Session(self.get_sync_engine()) as session:
             try:

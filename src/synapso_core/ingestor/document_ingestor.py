@@ -144,6 +144,14 @@ class DocumentIngestor:
                     chunk.metadata.setdefault("cortex_id", cortex_id)
                     chunk.metadata.setdefault("source_file_id", source_file_id)
                 chunk_id = self.private_store.insert(chunk.text)
+                if isinstance(chunk.metadata, dict):
+                    chunk.metadata["chunk_id"] = chunk_id
+                else:
+                    chunk.metadata = {
+                        "cortex_id": cortex_id,
+                        "source_file_id": source_file_id,
+                        "chunk_id": chunk_id,
+                    }
                 chunk_ids.append(chunk_id)
 
             self.meta_store.associate_chunks(file_version_id, chunk_ids)
@@ -243,7 +251,7 @@ class CortexIngestor:
                     eligibility_status=file_eligibility.name.lower(),
                     last_indexed_at=None,
                 )
-                self.meta_store.create_file(db_file)
+                db_file = self.meta_store.create_file(db_file)
 
                 db_file_version = DBFileVersion(
                     cortex_id=cortex.cortex_id,
@@ -253,7 +261,7 @@ class CortexIngestor:
                     file_version_invalid_at=None,
                     file_version_is_valid=True,
                 )
-                self.meta_store.create_file_version(db_file_version)
+                db_file_version = self.meta_store.create_file_version(db_file_version)
                 file_record.db_file = db_file
                 file_record.db_file_version = db_file_version
                 file_records.append(file_record)
