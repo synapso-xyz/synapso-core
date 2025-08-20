@@ -30,7 +30,6 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         self.meta_db_path = config.meta_store.meta_db_path
         self.meta_db_path = str(Path(self.meta_db_path).expanduser().resolve())
         SqliteEngineMixin.__init__(self, self.meta_db_path)
-        SqliteBackendIdentifierMixin.__init__(self, backend_identifier="sqlite")
 
     def create_cortex(self, cortex_name: str, cortex_path: str) -> DBCortex:
         """
@@ -215,10 +214,14 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         Get events for a given cortex id and time range.
         """
         with Session(self.get_sync_engine()) as session:
-            stmt = select(Event).where(
-                Event.cortex_id == cortex_id,
-                Event.event_timestamp >= start_time,
-                Event.event_timestamp <= end_time,
+            stmt = (
+                select(Event)
+                .where(
+                    Event.cortex_id == cortex_id,
+                    Event.event_timestamp >= start_time,
+                    Event.event_timestamp <= end_time,
+                )
+                .order_by(Event.event_timestamp.desc())
             )
             result = session.execute(stmt).scalars().all()
             return list(result)

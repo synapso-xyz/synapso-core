@@ -73,7 +73,9 @@ class FileRecord:
         self.file_name = path.name
         self.file_size = stat.st_size  # in bytes
         self.file_type = path.suffix.lower()
-        self.file_created_at = datetime.fromtimestamp(stat.st_ctime, timezone.utc)
+        # Note: st_ctime is change time on POSIX. Prefer st_birthtime if present.
+        created_ts = getattr(stat, "st_birthtime", stat.st_ctime)
+        self.file_created_at = datetime.fromtimestamp(created_ts, timezone.utc)
         self.file_updated_at = datetime.fromtimestamp(stat.st_mtime, timezone.utc)
         self.db_file = None
         self.db_file_version = None
@@ -154,17 +156,26 @@ class DocumentIngestor:
                     }
                 chunk_ids.append(chunk_id)
 
-            self.meta_store.associate_chunks(file_version_id, chunk_ids)
+            # De-duplicate to respect (cortex_id, file_version_id, chunk_id) uniqueness
+            unique_chunk_ids = list(dict.fromkeys(chunk_ids))
+            self.meta_store.associate_chunks(file_version_id, unique_chunk_ids)
 
             logger.info("Vectorizing %d chunks", len(chunks))
             vectors = self.vectorizer.vectorize_batch(chunks)
 
             logger.info("Inserting %d vectors into vector store", len(vectors))
+            failed_vectors = []
             for v in vectors:
                 ok = self.vector_store.insert(v)
                 if not ok:
                     logger.warning("Failed to insert vector for chunk %s", v.vector_id)
-                    return False, {"error_type": "Failed to insert vector"}
+                    failed_vectors.append(v)
+
+            if failed_vectors:
+                return False, {
+                    "error_type": "Failed to insert vector",
+                    "failed_vectors": failed_vectors,
+                }
 
             return True, None
         except Exception as e:
@@ -292,11 +303,11 @@ class CortexIngestor:
                         success, error_context = self.document_ingestor.ingest_file(
                             file_path, file_record.db_file_version.file_version_id
                         )
-                        db_file = file_record.db_file
-                        db_file.last_indexed_at = datetime.now(timezone.utc)
-                        self.meta_store.update_file(db_file)
-
-                        if not success:
+                        if success:
+                            db_file = file_record.db_file
+                            db_file.last_indexed_at = datetime.now(timezone.utc)
+                            self.meta_store.update_file(db_file)
+                        else:
                             err_file.write(json.dumps(error_context) + "\n")
                             has_errors = True
                         db_indexing_job.files_processed += 1
@@ -306,7 +317,9 @@ class CortexIngestor:
                     else:
                         continue
 
-            db_indexing_job.job_status = "COMPLETED"
+            db_indexing_job.job_status = (
+                "COMPLETED_WITH_ERRORS" if has_errors else "COMPLETED"
+            )
             db_indexing_job.job_end_time = datetime.now(timezone.utc)
             db_indexing_job = self.meta_store.update_indexing_job(db_indexing_job)
 
