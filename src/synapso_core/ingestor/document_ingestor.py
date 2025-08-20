@@ -82,6 +82,7 @@ class FileRecord:
 def _get_file_list_path(directory_path: str, ensure_present=True) -> Path:
     file_list_path = Path(directory_path) / ".synapso" / "file_list.csv"
     if ensure_present:
+        file_list_path.parent.mkdir(exist_ok=True, parents=True)
         file_list_path.touch()
     return file_list_path
 
@@ -89,6 +90,7 @@ def _get_file_list_path(directory_path: str, ensure_present=True) -> Path:
 def _get_ingestion_errors_path(directory_path: str, ensure_present=True) -> Path:
     ingestion_errors_path = Path(directory_path) / ".synapso" / "ingestion_errors.jsonl"
     if ensure_present:
+        ingestion_errors_path.parent.mkdir(exist_ok=True, parents=True)
         ingestion_errors_path.touch()
     return ingestion_errors_path
 
@@ -134,7 +136,7 @@ class DocumentIngestor:
                 chunk_id = self.private_store.insert(chunk.text)
                 chunk_ids.append(chunk_id)
 
-            self.meta_store.assosiate_chunks(file_version_id, chunk_ids)
+            self.meta_store.associate_chunks(file_version_id, chunk_ids)
 
             logger.info("Vectorizing %d chunks", len(chunks))
             vectors = self.vectorizer.vectorize_batch(chunks)

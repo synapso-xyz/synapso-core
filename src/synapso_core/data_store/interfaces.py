@@ -115,7 +115,7 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
         """
         raise NotImplementedError
 
-    def assosiate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
+    def associate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
         """
         Associate chunks with a file version.
         """

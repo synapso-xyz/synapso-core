@@ -29,5 +29,10 @@ class SimpleTxtChunker(Chunker):
             for chunk in chunks
         ]
 
+    def chunk_file(self, file_path: str) -> List[Chunk]:
+        with open(file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+        return self.chunk_text(text)
+
     def is_file_supported(self, file_path: str) -> bool:
         return file_path.endswith(".txt")

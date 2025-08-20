@@ -1,6 +1,5 @@
 import json
 import logging
-import sqlite3
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -26,7 +25,6 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         self.vector_db_path = config.vector_store.vector_db_path
         self.vector_db_path = str(Path(self.vector_db_path).expanduser().resolve())
         SqliteEngineMixin.__init__(self, self.vector_db_path)
-        SqliteBackendIdentifierMixin.__init__(self, backend_identifier="sqlite")
         self.conn: apsw.Connection | None = self._get_connection()
 
     def _get_connection(self) -> apsw.Connection:
@@ -113,8 +111,11 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             )
             return True
 
-        except sqlite3.Error as e:
+        except apsw.Error as e:
             logger.error("Database error during insert: %s", e)
+            return False
+        except Exception as e:
+            logger.exception(e)
             return False
 
     def get_by_id(self, vector_id: str) -> Vector | None:
@@ -161,8 +162,9 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
                 select m.content_hash, v.distance
                 from vss_vectors v
                 join metadata m on v.rowid = m.vector_row_id
-                where vss_search(v.embedding, vss_search_params(?, ?))
+                where vss_search(v.embedding, ?)
                 order by v.distance
+                limit ?
             """
             try:
                 results = self.conn.execute(

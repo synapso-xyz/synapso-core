@@ -148,7 +148,7 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
             result = session.execute(stmt).scalar_one_or_none()
             return result
 
-    def assosiate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
+    def associate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
         """
         Associate chunks with a file version.
         """

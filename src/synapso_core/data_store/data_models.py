@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import func
+from sqlalchemy import Index, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import Boolean, Integer, String
 
@@ -46,13 +46,16 @@ class DBFile(MetaStoreBase):
     cortex_id: Mapped[str] = mapped_column(String, nullable=False)
     file_id: Mapped[str] = mapped_column(String, primary_key=True)
     file_name: Mapped[str] = mapped_column(String, nullable=False)
-    file_path: Mapped[str] = mapped_column(String, nullable=False)
+    file_path: Mapped[str] = mapped_column(String, nullable=False, index=True)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
     file_type: Mapped[str] = mapped_column(String, nullable=False)
     file_created_at: Mapped[datetime] = mapped_column(nullable=False)
     file_updated_at: Mapped[datetime] = mapped_column(nullable=False)
     eligibility_status: Mapped[str] = mapped_column(String, nullable=False)
     last_indexed_at: Mapped[datetime] = mapped_column(nullable=True)
+    __table_args__ = (
+        UniqueConstraint("cortex_id", "file_path", name="uq_files_cortex_path"),
+    )
 
 
 class DBFileVersion(MetaStoreBase):
@@ -67,6 +70,10 @@ class DBFileVersion(MetaStoreBase):
 
 class FileVersionToChunkId(MetaStoreBase):
     __tablename__ = "file_version_to_chunk_id"
+    __table_args__ = (
+        Index("idx_fvtci_chunk_id", "chunk_id"),
+        Index("idx_fvtci_file_version_id", "file_version_id"),
+    )
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     cortex_id: Mapped[str] = mapped_column(String, nullable=False)
     file_version_id: Mapped[str] = mapped_column(String, nullable=False)
