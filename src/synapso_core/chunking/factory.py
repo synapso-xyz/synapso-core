@@ -9,7 +9,6 @@ AVAILABLE_CHUNKER_TYPES = {
     "langchain_markdown": LangchainMarkdownChunker,
     "chonkie_recursive": ChonkieRecursiveChunker,
     "simple_txt": SimpleTxtChunker,
-    # "custom": CustomChunker,
 }
 
 

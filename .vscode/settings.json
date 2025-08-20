@@ -4,7 +4,6 @@
     "python.analysis.extraPaths": [
         "./src"
     ],
-    "python.defaultInterpreterPath": "/Users/ganeshpalanikumar/venv/synapso/bin/python3.11",
     "python.analysis.autoImportCompletions": true,
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",

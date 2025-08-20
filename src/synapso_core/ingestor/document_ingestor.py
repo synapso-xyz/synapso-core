@@ -127,12 +127,22 @@ class DocumentIngestor:
         self, file_path: Path, file_version_id: str
     ) -> Tuple[bool, Dict | None]:
         try:
+            file_version = self.meta_store.get_file_version_by_id(file_version_id)  # type: ignore[attr-defined]
+            if file_version is None:
+                raise ValueError(f"File version {file_version_id} not found")
+            cortex_id = file_version.cortex_id
+            source_file_id = file_version.file_id
+
             logger.info("Ingesting %s", file_path)
             chunks = self.chunker.chunk_file(str(file_path))
 
             chunk_ids = []
             logger.info("Inserting %d chunks into private store", len(chunks))
             for chunk in chunks:
+                # Ensure chunk metadata carries linkage for vector metadata
+                if isinstance(chunk.metadata, dict):
+                    chunk.metadata.setdefault("cortex_id", cortex_id)
+                    chunk.metadata.setdefault("source_file_id", source_file_id)
                 chunk_id = self.private_store.insert(chunk.text)
                 chunk_ids.append(chunk_id)
 
@@ -143,12 +153,20 @@ class DocumentIngestor:
 
             logger.info("Inserting %d vectors into vector store", len(vectors))
             for v in vectors:
-                self.vector_store.insert(v)
+                ok = self.vector_store.insert(v)
+                if not ok:
+                    logger.warning("Failed to insert vector for chunk %s", v.vector_id)
+                    return False, {"error_type": "Failed to insert vector"}
 
             return True, None
         except Exception as e:
             traceback = tb.format_exc()
-            error_context = {"error_type": str(e), "traceback": traceback}
+            error_context = {
+                "error_type": str(e),
+                "traceback": traceback,
+                "file_path": str(file_path),
+                "file_version_id": file_version_id,
+            }
             logger.error("Error ingesting file %s: %s", file_path, traceback)
             return False, error_context
 
