@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ....config_manager import get_config
@@ -94,10 +95,21 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
             return existing_file
 
         with Session(self.get_sync_engine()) as session:
-            session.add(file)
-            session.commit()
-            session.refresh(file)
-            return file
+            try:
+                session.add(file)
+                session.commit()
+                session.refresh(file)
+                return file
+            except IntegrityError:
+                session.rollback()
+                stmt = select(DBFile).where(
+                    DBFile.cortex_id == file.cortex_id,
+                    DBFile.file_path == file.file_path,
+                )
+                existing = session.execute(stmt).scalar_one_or_none()
+                if existing is None:
+                    raise
+                return existing
 
     def get_file_by_id(self, file_id: str) -> DBFile | None:
         """
@@ -179,7 +191,11 @@ class SqliteMetaStore(SqliteEngineMixin, SqliteBackendIdentifierMixin, MetaStore
         with Session(self.get_sync_engine()) as session:
             stmt = (
                 select(DBFileVersion)
-                .join(FileVersionToChunkId)
+                .join(
+                    FileVersionToChunkId,
+                    DBFileVersion.file_version_id
+                    == FileVersionToChunkId.file_version_id,
+                )
                 .where(FileVersionToChunkId.chunk_id == chunk_id)
             )
             result = session.execute(stmt).scalar_one_or_none()
