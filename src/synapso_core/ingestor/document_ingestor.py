@@ -174,7 +174,9 @@ class DocumentIngestor:
             if failed_vectors:
                 return False, {
                     "error_type": "Failed to insert vector",
-                    "failed_vectors": failed_vectors,
+                    "failed_vectors": [v.vector_id for v in failed_vectors],
+                    "n_failed_vectors": len(failed_vectors),
+                    "file_path": str(file_path),
                 }
 
             return True, None
