@@ -4,7 +4,6 @@
     "python.analysis.extraPaths": [
         "./src"
     ],
-    "python.defaultInterpreterPath": "./.venv/bin/python",
     "python.analysis.autoImportCompletions": true,
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",

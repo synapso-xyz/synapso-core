@@ -96,7 +96,11 @@ class VectorizerConfig(BaseConfig):
 
 
 class ChunkerConfig(BaseConfig):
-    available_types: ClassVar[list[str]] = ["chonkie_recursive", "custom"]
+    available_types: ClassVar[list[str]] = [
+        "chonkie_recursive",
+        "langchain_markdown",
+        "simple_txt",
+    ]
     chunker_type: str = "chonkie_recursive"
     chunk_size: int = 1000
     chunk_overlap: int = 100

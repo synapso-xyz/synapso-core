@@ -1,6 +1,5 @@
 import json
 import logging
-import sqlite3
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -26,22 +25,20 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         self.vector_db_path = config.vector_store.vector_db_path
         self.vector_db_path = str(Path(self.vector_db_path).expanduser().resolve())
         SqliteEngineMixin.__init__(self, self.vector_db_path)
-        self._conn = None
+        self.conn: apsw.Connection | None = self._get_connection()
 
-    def _get_connection(self):
-        if self._conn is None:
-            conn = apsw.Connection(self.vector_db_path)
-            conn.enable_load_extension(True)
-            sqlite_vss.load(conn)  # type: ignore
-            conn.enable_load_extension(False)
-            self._conn = conn
-        return self._conn
+    def _get_connection(self) -> apsw.Connection:
+        conn = apsw.Connection(self.vector_db_path)
+        conn.enable_load_extension(True)
+        sqlite_vss.load(conn)  # type: ignore
+        conn.enable_load_extension(False)
+        return conn
 
     def close(self):
         """Explicitly close the database connection."""
-        if self._conn is not None:
-            self._conn.close()
-            self._conn = None
+        if self.conn is not None:
+            self.conn.close()
+            self.conn = None
         super().close()
 
     def __enter__(self):
@@ -58,75 +55,79 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         return True
 
     def insert(self, vector: Vector) -> bool:
-        conn = self._get_connection()
-        cursor = conn.cursor()
         try:
-            with conn:
-                vector_id = vector.vector_id
-                embedding = vector.vector
-                metadata = vector.metadata
+            if self.conn is None:
+                self.conn = self._get_connection()
+            cursor = self.conn.cursor()
+            vector_id = vector.vector_id
+            embedding = vector.vector
+            metadata = vector.metadata
 
-                embedding_np = np.array(embedding, dtype=np.float32)
-                embedding_bytes = embedding_np.tobytes()
-                # Check if the vector's metadata already exists to prevent duplicates
-                cursor.execute(
-                    "SELECT 1 FROM metadata WHERE content_hash = ?",
-                    (vector_id,),
-                )
-                if cursor.fetchone() is not None:
-                    logger.info(
-                        "Vector with content_hash '%s' already exists.", vector_id
-                    )
-                    return True
-
-                # 1. Validate and prepare vector data
-                if len(embedding) != 384:  # Assuming dimension is 384
-                    raise ValueError(
-                        f"Vector dimension is {len(embedding)}, but must be 384."
-                    )
-
-                # 2. Prepare metadata
-                metadata_json = json.dumps(metadata.to_dict()) if metadata else None
-
-                cursor.execute("SELECT max(rowid) FROM vss_vectors")
-                result = cursor.fetchone()
-                max_rowid = result[0] if result else None
-                if max_rowid is None:
-                    max_rowid = 0
-                vector_row_id = max_rowid + 1
-
-                # 3. Perform inserts within a single transaction
-                # Insert into the VSS table
-                cursor.execute(
-                    "INSERT INTO vss_vectors(rowid, embedding) VALUES (?, ?)",
-                    (vector_row_id, embedding_bytes),
-                )
-
-                # Correctly get the last row id from the cursor
-                vector_row_id = cursor.getconnection().last_insert_rowid()
-
-                cursor.execute(
-                    "INSERT INTO metadata(vector_row_id, embedding, content_hash, metadata) VALUES (?, ?, ?, ?)",
-                    (vector_row_id, embedding_bytes, vector_id, metadata_json),
-                )
-
-                # Commit the transaction
-                logger.info(
-                    "Successfully inserted vector with content_hash '%s'.", vector_id
-                )
+            embedding_np = np.array(embedding, dtype=np.float32)
+            embedding_bytes = embedding_np.tobytes()
+            # Check if the vector's metadata already exists to prevent duplicates
+            cursor.execute(
+                "SELECT 1 FROM metadata WHERE content_hash = ?",
+                (vector_id,),
+            )
+            if cursor.fetchone() is not None:
+                logger.info("Vector with content_hash '%s' already exists.", vector_id)
                 return True
 
-        except sqlite3.Error as e:
+            # 1. Validate and prepare vector data
+            if len(embedding) != 384:  # Assuming dimension is 384
+                raise ValueError(
+                    f"Vector dimension is {len(embedding)}, but must be 384."
+                )
+
+            # 2. Prepare metadata
+            metadata_json = json.dumps(metadata.to_dict()) if metadata else None
+
+            cursor.execute("SELECT max(rowid) FROM vss_vectors")
+            result = cursor.fetchone()
+            max_rowid = result[0] if result else None
+            if max_rowid is None:
+                max_rowid = 0
+            vector_row_id = max_rowid + 1
+
+            # 3. Perform inserts within a single transaction
+            # Insert into the VSS table
+            cursor.execute(
+                "INSERT INTO vss_vectors(rowid, embedding) VALUES (?, ?)",
+                (vector_row_id, embedding_bytes),
+            )
+
+            # Correctly get the last row id from the cursor
+            vector_row_id = cursor.getconnection().last_insert_rowid()
+
+            cursor.execute(
+                "INSERT INTO metadata(vector_row_id, embedding, content_hash, metadata) VALUES (?, ?, ?, ?)",
+                (vector_row_id, embedding_bytes, vector_id, metadata_json),
+            )
+
+            # Commit the transaction
+            logger.info(
+                "Successfully inserted vector with content_hash '%s'.", vector_id
+            )
+            return True
+
+        except apsw.Error as e:
             logger.error("Database error during insert: %s", e)
+            return False
+        except Exception as e:
+            logger.exception(e)
             return False
 
     def get_by_id(self, vector_id: str) -> Vector | None:
-        conn = self._get_connection()
         try:
+            if self.conn is None:
+                self.conn = self._get_connection()
             get_metadata_stmt = """
                 SELECT embedding, content_hash, metadata FROM metadata WHERE content_hash = ?
             """
-            result_metadata = conn.execute(get_metadata_stmt, (vector_id,)).fetchone()
+            result_metadata = self.conn.execute(
+                get_metadata_stmt, (vector_id,)
+            ).fetchone()
             if result_metadata is None:
                 return None
             embedding = result_metadata[0]
@@ -149,7 +150,8 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
     def vector_search(
         self, query_vector: Vector, top_k: int = 5, filters: Dict | None = None
     ) -> List[Tuple[Vector, float]]:
-        conn = self._get_connection()
+        if self.conn is None:
+            self.conn = self._get_connection()
         try:
             query_embeddings = query_vector.vector
             query_embeddings_np = np.array(query_embeddings, dtype=np.float32)
@@ -160,11 +162,12 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
                 select m.content_hash, v.distance
                 from vss_vectors v
                 join metadata m on v.rowid = m.vector_row_id
-                where vss_search(v.embedding, vss_search_params(?, ?))
+                where vss_search(v.embedding, ?)
                 order by v.distance
+                limit ?
             """
             try:
-                results = conn.execute(
+                results = self.conn.execute(
                     search_stmt, (query_embedding_bytes, top_k)
                 ).fetchall()
             except Exception as e:
@@ -194,7 +197,8 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
         raise NotImplementedError("Not implemented")
 
     def _setup_tables(self) -> None:
-        conn = self._get_connection()
+        if self.conn is None:
+            self.conn = self._get_connection()
 
         # Try to load VSS extension, but handle cases where it's not available
 
@@ -204,7 +208,7 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             )
         """
         try:
-            conn.execute(create_vector_table_stmt)
+            self.conn.execute(create_vector_table_stmt)
         except Exception as e:
             logger.exception(e)
             raise e
@@ -218,8 +222,7 @@ class SqliteVectorStore(SqliteEngineMixin, VectorStore, SqliteBackendIdentifierM
             )
         """
         try:
-            cursor = conn.cursor()
-            cursor.execute(create_metadata_table_stmt)
+            self.conn.execute(create_metadata_table_stmt)
         except Exception as e:
             logger.exception(e)
             raise e

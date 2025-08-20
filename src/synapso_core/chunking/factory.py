@@ -1,5 +1,15 @@
-from .implementations import ChonkieRecursiveChunker, LangchainMarkdownChunker
+from .implementations import (
+    ChonkieRecursiveChunker,
+    LangchainMarkdownChunker,
+    SimpleTxtChunker,
+)
 from .interface import Chunker
+
+AVAILABLE_CHUNKER_TYPES = {
+    "langchain_markdown": LangchainMarkdownChunker,
+    "chonkie_recursive": ChonkieRecursiveChunker,
+    "simple_txt": SimpleTxtChunker,
+}
 
 
 class ChunkerFactory:
@@ -7,14 +17,8 @@ class ChunkerFactory:
     A factory for creating chunkers.
     """
 
-    available_chunkers = {
-        "langchain_markdown": LangchainMarkdownChunker,
-        "chonkie_recursive": ChonkieRecursiveChunker,
-        # "custom": CustomChunker,
-    }
-
     @staticmethod
     def create_chunker(chunker_type: str) -> Chunker:
-        if chunker_type not in ChunkerFactory.available_chunkers:
+        if chunker_type not in AVAILABLE_CHUNKER_TYPES:
             raise ValueError(f"Invalid chunker type: {chunker_type}")
-        return ChunkerFactory.available_chunkers[chunker_type]()
+        return AVAILABLE_CHUNKER_TYPES[chunker_type]()

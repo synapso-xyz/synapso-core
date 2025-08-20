@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Tuple
 
 from sqlalchemy import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from ..models import Vector, VectorMetadata
-from .data_models import DBCortex
+from .data_models import DBCortex, DBFile, DBFileVersion, Event, IndexingJob
 
 
 class BaseDataStore(ABC):
@@ -69,6 +70,98 @@ class MetaStore(SetupTearDownMixin, AsyncDataStore):
     def update_cortex(self, updated_cortex: DBCortex) -> DBCortex | None:
         """
         Update a cortex. Returns the updated cortex.
+        """
+        raise NotImplementedError
+
+    def create_file(self, file: DBFile) -> DBFile:
+        """
+        Create a new file.
+        """
+        raise NotImplementedError
+
+    def get_file_by_id(self, file_id: str) -> DBFile | None:
+        """
+        Get a file by its id.
+        """
+        raise NotImplementedError
+
+    def update_file(self, updated_file: DBFile) -> DBFile | None:
+        """
+        Update a file. Returns the updated file.
+        """
+        raise NotImplementedError
+
+    def get_file_by_path(self, file_path: str) -> DBFile | None:
+        """
+        Get a file by its path.
+        """
+        raise NotImplementedError
+
+    def create_file_version(self, file_version: DBFileVersion) -> DBFileVersion:
+        """
+        Create a new file version.
+        """
+        raise NotImplementedError
+
+    def get_file_version_by_id(self, file_version_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its id.
+        """
+        raise NotImplementedError
+
+    def get_file_version_by_file_id(self, file_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its file id.
+        """
+        raise NotImplementedError
+
+    def associate_chunks(self, file_version_id: str, chunk_ids: List[str]) -> bool:
+        """
+        Associate chunks with a file version.
+        """
+        raise NotImplementedError
+
+    def get_file_version_by_chunk_id(self, chunk_id: str) -> DBFileVersion | None:
+        """
+        Get a file version by its chunk id.
+        """
+        raise NotImplementedError
+
+    def create_event(self, event: Event) -> Event:
+        """
+        Create a new event.
+        """
+        raise NotImplementedError
+
+    def get_events(
+        self, cortex_id: str, start_time: datetime, end_time: datetime
+    ) -> List[Event]:
+        """
+        Get events for a given cortex id and time range.
+        """
+        raise NotImplementedError
+
+    def create_indexing_job(self, indexing_job: IndexingJob) -> IndexingJob:
+        """
+        Create a new indexing job.
+        """
+        raise NotImplementedError
+
+    def get_indexing_job_by_id(self, job_id: str) -> IndexingJob | None:
+        """
+        Get an indexing job by its id.
+        """
+        raise NotImplementedError
+
+    def update_indexing_job(self, indexing_job: IndexingJob) -> IndexingJob:
+        """
+        Update an indexing job.
+        """
+        raise NotImplementedError
+
+    def list_indexing_jobs(self, status: str = "IN_PROGRESS") -> List[IndexingJob]:
+        """
+        List all indexing jobs.
         """
         raise NotImplementedError
 

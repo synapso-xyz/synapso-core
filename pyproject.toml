@@ -39,7 +39,6 @@ packages = [
     "synapso_core.chunking",
     "synapso_core.chunking.implementations",
     "synapso_core.chunking.implementations.md",
-    "synapso_core.cortex_watcher",
     "synapso_core.ingestor",
     "synapso_core.reranker",
     "synapso_core.summarizer",
