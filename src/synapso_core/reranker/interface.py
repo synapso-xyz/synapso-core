@@ -1,3 +1,10 @@
+"""
+Reranker interface for Synapso Core.
+
+This module defines the abstract interface for reranking search results
+to improve relevance and accuracy of document retrieval.
+"""
+
 from abc import ABC, abstractmethod
 from typing import List, Tuple
 
@@ -6,24 +13,27 @@ from ..models import Vector
 
 class Reranker(ABC):
     """
-    A reranker is a class that reranks a list of results.
+    Abstract interface for result reranking.
+
+    A reranker takes initial search results and reorders them based on
+    relevance to the query, improving the quality of document retrieval.
     """
 
     @abstractmethod
-    def rerank(
+    async def rerank(
         self,
         results: List[Tuple[Vector, str, float]],
         query: Vector,
         query_text: str = "",
     ) -> List[Tuple[Vector, str, float]]:
         """
-        Rerank a list of results.
+        Rerank a list of search results.
 
         Args:
-            results: List of tuples containing vector, text, and score
-            query: Query vector
+            results: List of tuples containing (vector, text, score)
+            query: Query vector for relevance comparison
+            query_text: Optional text representation of the query
 
         Returns:
-            List of tuples containing reranked vector, text, and score
+            List[Tuple[Vector, str, float]]: Reranked list of (vector, text, score) tuples
         """
-        pass

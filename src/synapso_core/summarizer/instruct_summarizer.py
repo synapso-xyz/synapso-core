@@ -1,33 +1,44 @@
+"""
+InstructSummarizer for Synapso Core.
+
+This module provides the InstructSummarizer class for generating concise summaries
+using instruction-tuned language models. It supports both synchronous and streaming
+summarization capabilities.
+"""
+
 import asyncio
 import os
 import time
 from typing import List, Tuple
 
 from mlx_lm.generate import generate, stream_generate
-from mlx_lm.utils import load
 
+from ..model_provider import ModelManager, ModelNames
 from ..synapso_logger import get_logger
-
-SUMMARIZER_MODEL = "mlx-community/Llama-3.2-1B-Instruct-4bit"
-ASSISTANT_MODEL = "mlx-community/TinyMistral-248M-8bits"
-
-# SUMMARIZER_MODEL = "mlx-community/TinyLlama-1.1B-Chat-v1.0-4bit"
-
-model, tokenizer = load(SUMMARIZER_MODEL)
-assistant_model, _ = load(ASSISTANT_MODEL)
+from .interface import Summarizer
 
 logger = get_logger(__name__)
 
 
-class InstructSummarizer:
+class InstructSummarizer(Summarizer):
+    """
+    A summarizer that uses instruction-tuned language models to generate concise summaries.
+
+    This class provides both synchronous and streaming summarization capabilities,
+    using a main model for generation and an optional draft model for acceleration.
+    """
+
     def __init__(self):
         os.environ["TQDM_DISABLE"] = "1"
         os.environ["MLX_DISABLE_WARNINGS"] = "1"
-        logger.info("InstructSummarizer initialized with model %s", SUMMARIZER_MODEL)
-        self.model, self.tokenizer = model, tokenizer
-        self.assistant_model = assistant_model
+        self.model = None
+        self.tokenizer = None
+        self.assistant_model = None
+        self.assistant_tokenizer = None
 
-    def _prepare_prompt(self, question: str, results: List[Tuple[str, float]]) -> str:
+    async def _prepare_prompt(
+        self, question: str, results: List[Tuple[str, float]]
+    ) -> str:
         """
         Prepares the prompt for the LLM using a simple format.
         """
@@ -58,6 +69,7 @@ Question: {question}"""
 
         # 5. Use apply_chat_template, which will correctly add the assistant prompt turn.
         # This is the most reliable way to format prompts.
+        assert self.tokenizer is not None
         if hasattr(self.tokenizer, "apply_chat_template"):
             prompt = self.tokenizer.apply_chat_template(  # type: ignore
                 messages, tokenize=False, add_generation_prompt=True
@@ -70,69 +82,97 @@ Question: {question}"""
         logger.info("Prompt length: %s", len(prompt))
         return prompt
 
-    def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:
+    async def summarize(self, question: str, results: List[Tuple[str, float]]) -> str:
         start_time = time.time()
-        prompt = self._prepare_prompt(question, results)
-        prompt_time = time.time()
-        logger.info("Prompt prepared in %s seconds", prompt_time - start_time)
-        start_time = time.time()
-        response = generate(
-            self.model,
-            self.tokenizer,
-            prompt,
-            max_tokens=100,
-            draft_model=self.assistant_model,
-        )
-        response_time = time.time()
-        logger.info("Response generated in %s seconds", response_time - start_time)
+        model_manager = ModelManager.get_instance()
+        async with (
+            model_manager.acquire(ModelNames.LLAMA32_LANGUAGE_MODEL) as model_provider,
+            model_manager.acquire(
+                ModelNames.MISTRAL_LANGUAGE_MODEL
+            ) as assistant_model_provider,
+        ):
+            await model_provider.ensure_loaded()
+            await assistant_model_provider.ensure_loaded()
+            self.model = model_provider.model
+            self.tokenizer = model_provider.tokenizer
+            self.assistant_model = assistant_model_provider.model
+            self.assistant_tokenizer = assistant_model_provider.tokenizer
 
-        # Handle response properly
-        if isinstance(response, str):
-            # Check for EOS token if it exists
-            eos_token = getattr(self.tokenizer, "eos_token", None)
-            if eos_token and eos_token in response:
-                return response.split(eos_token)[0].strip()
-            return response.strip()
-        return str(response)
+            prompt = await self._prepare_prompt(question, results)
+            prompt_time = time.time()
+            logger.info("Prompt prepared in %s seconds", prompt_time - start_time)
+            start_time = time.time()
+            response = generate(
+                self.model,
+                self.tokenizer,
+                prompt,
+                max_tokens=100,
+                draft_model=self.assistant_model,
+            )
+            response_time = time.time()
+            logger.info("Response generated in %s seconds", response_time - start_time)
+
+            # Handle response properly
+            if isinstance(response, str):
+                # Check for EOS token if it exists
+                eos_token = getattr(self.tokenizer, "eos_token", None)
+                if eos_token and eos_token in response:
+                    return response.split(eos_token)[0].strip()
+                return response.strip()
+            return str(response)
 
     async def run_summarizer_stream(
         self, question: str, results: List[Tuple[str, float]]
     ):
         start_time = time.time()
-        prompt = self._prepare_prompt(question, results)
-        prompt_time = time.time()
-        logger.info("Prompt prepared in %s seconds", prompt_time - start_time)
-        start_time = time.time()
-        logger.info("EOS token: %s", getattr(self.tokenizer, "eos_token", None))
-        first_token = True
-
-        # Use stream_generate which returns a synchronous generator
-        for response in stream_generate(
-            self.model,
-            self.tokenizer,
-            prompt,
-            max_tokens=256,
-            # draft_model=self.assistant_model,
+        model_manager = ModelManager.get_instance()
+        async with (
+            model_manager.acquire(ModelNames.LLAMA32_LANGUAGE_MODEL) as model_provider,
+            model_manager.acquire(
+                ModelNames.MISTRAL_LANGUAGE_MODEL
+            ) as assistant_model_provider,
         ):
-            if hasattr(response, "token") and response.token == getattr(
-                self.tokenizer, "eos_token", None
+            await model_provider.ensure_loaded()
+            await assistant_model_provider.ensure_loaded()
+            self.model = model_provider.model
+            self.tokenizer = model_provider.tokenizer
+            self.assistant_model = assistant_model_provider.model
+            self.assistant_tokenizer = assistant_model_provider.tokenizer
+
+            prompt = await self._prepare_prompt(question, results)
+            prompt_time = time.time()
+            logger.info("Prompt prepared in %s seconds", prompt_time - start_time)
+            start_time = time.time()
+            logger.info("EOS token: %s", getattr(self.tokenizer, "eos_token", None))
+            first_token = True
+
+            # Use stream_generate which returns a synchronous generator
+            for response in stream_generate(
+                self.model,
+                self.tokenizer,
+                prompt,
+                max_tokens=256,
+                # draft_model=self.assistant_model,
             ):
-                logger.info("EOS token found")
-                break
-            if hasattr(response, "text") and "<|end|>" in response.text:
-                logger.info("End token found")
-                yield response.text.split("<|end|>")[0].strip() + "\n"
-                break
+                if hasattr(response, "token") and response.token == getattr(
+                    self.tokenizer, "eos_token", None
+                ):
+                    logger.info("EOS token found")
+                    break
+                if hasattr(response, "text") and "<|end|>" in response.text:
+                    logger.info("End token found")
+                    yield response.text.split("<|end|>")[0].strip() + "\n"
+                    break
 
-            if first_token:
-                first_token = False
-                logger.info("First token time: %s", time.time() - start_time)
+                if first_token:
+                    first_token = False
+                    logger.info("First token time: %s", time.time() - start_time)
 
-            # Yield the token and allow other coroutines to run
-            yield response.text if hasattr(response, "text") else str(response)
-            await asyncio.sleep(0)  # Allow other coroutines to run
+                # Yield the token and allow other coroutines to run
+                yield response.text if hasattr(response, "text") else str(response)
+                await asyncio.sleep(0)  # Allow other coroutines to run
 
-        stream_time = time.time()
-        logger.info(
-            "Summarizer stream completed in %s seconds", stream_time - start_time
-        )
+            stream_time = time.time()
+            logger.info(
+                "Summarizer stream completed in %s seconds", stream_time - start_time
+            )

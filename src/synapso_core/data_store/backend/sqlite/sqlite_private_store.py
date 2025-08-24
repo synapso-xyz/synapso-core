@@ -35,10 +35,12 @@ class SqlitePrivateStore(
 
             try:
                 loop = asyncio.get_running_loop()
-                loop.create_task(self._async_engine.dispose())
+                if self._async_engine is not None:
+                    loop.create_task(self._async_engine.dispose())
             except RuntimeError:
                 logger.warning("No running event loop found")
-                asyncio.run(self._async_engine.dispose())
+                if self._async_engine is not None:
+                    asyncio.run(self._async_engine.dispose())
             except Exception as e:
                 logger.error("Error disposing async engine: %s", e)
                 raise e

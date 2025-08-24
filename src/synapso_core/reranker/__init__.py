@@ -1,3 +1,10 @@
+"""
+Reranking for Synapso Core.
+
+This module provides interfaces and implementations for reranking
+search results to improve relevance and accuracy.
+"""
+
 import nltk
 from nltk.data import find
 
@@ -7,6 +14,12 @@ from .interface import Reranker
 
 
 def _ensure_nltk_resources():
+    """
+    Ensure required NLTK resources are available.
+
+    Downloads necessary NLTK corpora and data files
+    if they're not already present.
+    """
     resources = [
         "wordnet",
         "stopwords",

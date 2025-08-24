@@ -1,3 +1,10 @@
+"""
+Reranker factory for Synapso Core.
+
+This module provides a factory for creating reranker instances
+based on configuration type strings.
+"""
+
 from .bm25_reranker import BM25Reranker
 from .interface import Reranker
 from .modernbert_reranker import ModernBertReranker
@@ -6,7 +13,10 @@ from .qwen3_reranker import Qwen3Reranker
 
 class RerankerFactory:
     """
-    A factory for creating rerankers.
+    Factory for creating reranker instances.
+
+    Provides a centralized way to instantiate different types
+    of result rerankers based on configuration.
     """
 
     available_rerankers = {
@@ -24,7 +34,7 @@ class RerankerFactory:
             reranker_type: Type of reranker to create
 
         Returns:
-            Reranker instance or None if type not found
+            Reranker | None: Reranker instance if type is supported, None otherwise
         """
         if reranker_type not in RerankerFactory.available_rerankers:
             return None

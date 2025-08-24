@@ -1,3 +1,11 @@
+"""
+Vectorizer interface for Synapso Core.
+
+This module defines the abstract interface for converting text chunks
+into vector embeddings for similarity search and retrieval.
+"""
+
+import asyncio
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -7,18 +15,32 @@ from ..models import Vector
 
 class Vectorizer(ABC):
     """
-    A vectorizer is a class that vectorizes text.
+    Abstract interface for text vectorization.
+
+    A vectorizer converts text chunks into numerical vector representations
+    (embeddings) that can be used for similarity search and retrieval.
     """
 
-    def vectorize_batch(self, chunks: List[Chunk]) -> List[Vector]:
+    async def vectorize_batch(self, chunks: List[Chunk]) -> List[Vector]:
         """
-        Vectorize a batch of chunks.
+        Vectorize a batch of text chunks.
+
+        Args:
+            chunks: List of text chunks to vectorize
+
+        Returns:
+            List[Vector]: List of vector objects with embeddings and metadata
         """
-        return [self.vectorize(chunk) for chunk in chunks]
+        return await asyncio.gather(*[self.vectorize(chunk) for chunk in chunks])
 
     @abstractmethod
-    def vectorize(self, chunk: Chunk) -> Vector:
+    async def vectorize(self, chunk: Chunk) -> Vector:
         """
-        Vectorize a single chunk.
+        Vectorize a single text chunk.
+
+        Args:
+            chunk: Text chunk to vectorize
+
+        Returns:
+            Vector: Vector object containing the embedding and metadata
         """
-        pass

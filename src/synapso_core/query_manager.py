@@ -1,5 +1,12 @@
+"""
+Query management for Synapso Core.
+
+This module provides the QueryManager class for executing semantic queries
+against the document store, including vector search, reranking, and summarization.
+"""
+
 import time
-from typing import Any, List, Tuple
+from typing import Any
 
 from .chunking.interface import Chunk
 from .config_manager import GlobalConfig, get_config
@@ -16,13 +23,39 @@ logger = get_logger(__name__)
 
 
 def _assure_not_none(obj: Any, name: str) -> Any:
+    """
+    Ensure an object is not None, raising a descriptive error if it is.
+
+    Args:
+        obj: Object to check
+        name: Name of the object for error reporting
+
+    Returns:
+        The object if it's not None
+
+    Raises:
+        ValueError: If the object is None
+    """
     if obj is None:
         raise ValueError(f"{name} not found")
     return obj
 
 
 class QueryManager:
+    """
+    Manages semantic queries against the document store.
+
+    Coordinates vector search, reranking, and summarization to provide
+    comprehensive answers to user queries.
+    """
+
     def __init__(self):
+        """
+        Initialize the QueryManager with all required components.
+
+        Raises:
+            RuntimeError: If any component fails to initialize
+        """
         start_time = time.time()
         global_config: GlobalConfig = get_config()
 
@@ -63,9 +96,15 @@ class QueryManager:
                 f"Failed to initialize QueryManager components: {e}"
             ) from e
 
-    def query(self, query: str) -> List[Tuple[str, float]]:
+    def query(self, query: str) -> str:
         """
         Query the vector store and return a summary of the results.
+
+        Args:
+            query: The user's query string
+
+        Returns:
+            str: A summarized answer to the query
         """
         start_time = time.time()
         query_chunk = Chunk(text=query)
@@ -95,6 +134,15 @@ class QueryManager:
         return summary
 
     async def query_stream(self, query: str):
+        """
+        Execute a query and stream the results as they're generated.
+
+        Args:
+            query: The user's query string
+
+        Yields:
+            str: Tokens of the generated response as they become available
+        """
         start_time = time.time()
         query_chunk = Chunk(text=query)
         query_vector = self.vectorizer.vectorize(query_chunk)
