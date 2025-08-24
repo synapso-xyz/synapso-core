@@ -1,3 +1,10 @@
+"""
+Qwen3Reranker for Synapso Core.
+
+This module provides the Qwen3Reranker class for reranking search results
+using the Qwen/Qwen3-Reranker-0.6B model. It uses MLX for efficient vector operations.
+"""
+
 from typing import List, Tuple
 
 import mlx.core as mx

@@ -1,4 +1,10 @@
-# rerank_e5.py
+"""
+ModernBertReranker for Synapso Core.
+
+This module provides the ModernBertReranker class for reranking search results
+using the ModernBert embeddings model. It uses MLX for efficient vector operations.
+"""
+
 from typing import List, Tuple
 
 import mlx.core as mx  # type: ignore
@@ -13,6 +19,15 @@ logger = get_logger(__name__)
 
 
 class ModernBertReranker(Reranker):
+    """
+    A reranker that uses the ModernBert embeddings model with MLX.
+    This implementation loads a 6-bit quantized MLX model from Hugging Face.
+    """
+
+    def __init__(self):
+        self.tokenizer = None
+        self.model = None
+
     async def rerank(
         self,
         results: List[Tuple[Vector, str, float]],
